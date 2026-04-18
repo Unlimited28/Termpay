@@ -1,9 +1,12 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? 'loaded' : 'missing');
+console.log('SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'loaded' : 'missing');
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
-
-dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3001;
