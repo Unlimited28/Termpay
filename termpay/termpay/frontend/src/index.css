@@ -1,51 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply bg-background text-text-primary font-sans antialiased;
+    @apply bg-surface-bg text-text-primary font-sans antialiased;
   }
 }
 
 @layer components {
-  .card {
-    @apply bg-white rounded-xl shadow-premium border border-transparent;
-  }
+  /* Common UI patterns will be implemented as components, but some base styles can live here */
   
-  .btn-primary {
-    @apply bg-primary-navy text-white rounded-lg px-4 py-2 font-medium transition-all duration-150 active:scale-95 hover:bg-primary-hover flex items-center justify-center gap-2;
-  }
-
-  .btn-secondary {
-    @apply bg-white text-primary-navy border border-border rounded-lg px-4 py-2 font-medium transition-all duration-150 active:scale-95 hover:bg-slate-50 flex items-center justify-center gap-2;
-  }
-
-  .btn-danger {
-    @apply bg-danger-red text-white rounded-lg px-4 py-2 font-medium transition-all duration-150 active:scale-95 hover:bg-red-800 flex items-center justify-center gap-2;
-  }
-
-  .input {
-    @apply w-full h-[42px] rounded-lg border border-border px-4 focus:outline-none focus:ring-2 focus:ring-action-blue/20 focus:border-action-blue transition-all placeholder:text-slate-400;
-  }
-
-  .badge {
-    @apply px-2.5 py-0.5 rounded-full text-xs font-semibold;
-  }
-
-  .badge-paid {
-    @apply bg-success-green/10 text-success-green;
-  }
-
-  .badge-partial {
-    @apply bg-warning-amber/10 text-warning-amber;
-  }
-
-  .badge-unpaid {
-    @apply bg-danger-red/10 text-danger-red;
-  }
-
-  /* Table styling */
   .table-container {
     @apply overflow-x-auto;
   }
@@ -55,15 +22,11 @@
   }
 
   thead th {
-    @apply py-4 px-6 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border;
+    @apply py-4 px-6 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-surface-border;
   }
 
   tbody tr {
-    @apply border-b border-border hover:bg-slate-50/50 transition-colors duration-150;
-  }
-
-  tbody tr:nth-child(even) {
-    @apply bg-background/50;
+    @apply border-b border-surface-border hover:bg-slate-50 transition-colors duration-150;
   }
 
   tbody td {
@@ -71,33 +34,19 @@
   }
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+/* Custom Scrollbar for Select Dropdowns */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
 }
 
-@keyframes scaleIn {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.1s ease-out forwards;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full;
 }
 
-.animate-scale-in {
-  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Skeleton shimmer */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.skeleton {
-  background: linear-gradient(90deg, #f1f5f9 25%, #f8fafc 50%, #f1f5f9 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-300;
 }
