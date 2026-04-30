@@ -9,15 +9,18 @@ import {
   X,
   Bell,
   Search,
-  User
+  User,
+  LogOut
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
+  const { signOut, user } = useAuth();
 
   const navItems = [
-    { label: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { label: 'Students', path: '/admin/students', icon: <Users className="w-5 h-5" /> },
     { label: 'Bank Statements', path: '/admin/bank-matching', icon: <FileText className="w-5 h-5" /> },
     { label: 'Payments', path: '/admin/payments', icon: <CreditCard className="w-5 h-5" /> },
@@ -66,11 +69,23 @@ export default function AdminLayout() {
             ))}
           </nav>
 
-          <div className="pt-6 border-t border-white/10 mt-auto">
+          <div className="pt-6 border-t border-white/10 mt-auto space-y-2">
             <div className="flex items-center gap-3 px-4 py-3 text-slate-400">
               <User className="w-5 h-5" />
-              <span className="text-sm font-medium">Admin User</span>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-medium text-slate-200 truncate">
+                  {user?.email?.split('@')[0]}
+                </span>
+                <span className="text-xs text-slate-500 truncate">Admin</span>
+              </div>
             </div>
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-white/5 hover:text-brand-red transition-all duration-200 w-full text-left"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="font-medium">Logout</span>
+            </button>
           </div>
         </div>
       </aside>

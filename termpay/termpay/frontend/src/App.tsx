@@ -1,36 +1,21 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
-import { ProtectedRoute } from './components/ProtectedRoute';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { AdminLayout, AuthLayout } from './layouts';
 
 // UI Components
-import { Button, Card, Input } from './components/ui';
+import { Card, Input, Button } from './components/ui';
 
 // Pages
 import Dashboard from './pages/Dashboard/Dashboard';
 import Students from './pages/Students/Students';
+import Login from './pages/Login';
 import UIPreview from './pages/UIPreview';
 
 // Placeholder Pages
-const Login = () => (
-  <AuthLayout>
-    <Card className="p-8">
-      <h2 className="text-2xl font-bold text-navy mb-6">Welcome Back</h2>
-      <div className="space-y-4">
-        <Input label="Email Address" placeholder="admin@school.com" />
-        <Input label="Password" type="password" placeholder="••••••••" />
-        <Button className="w-full mt-2">Login as Admin</Button>
-      </div>
-      <div className="mt-6 text-center text-sm text-text-secondary">
-        Are you a parent? <Link to="/parent/login" className="text-brand-blue font-semibold hover:underline">Login here</Link>
-      </div>
-    </Card>
-  </AuthLayout>
-);
-
 const ParentLogin = () => (
   <AuthLayout>
     <Card className="p-8">
@@ -63,26 +48,20 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/parent/login" element={<ParentLogin />} />
               <Route path="/ui-preview" element={<UIPreview />} />
-              <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
 
-              <Route element={<ProtectedRoute type="admin" />}>
-                <Route element={<AdminLayout />}>
-                  <Route path="/admin/dashboard" element={<Dashboard />} />
-                  <Route path="/admin/students" element={<Students />} />
-                  <Route path="/admin/bank-matching" element={<MockPage title="Bank Statement Matching" />} />
-                  <Route path="/admin/payments" element={<MockPage title="Payments History" />} />
-                  <Route path="/admin/classes" element={<MockPage title="Classes Management" />} />
-                  <Route path="/admin/fees" element={<MockPage title="Fee Structure" />} />
-                  <Route path="/admin/receipts" element={<MockPage title="Receipts Archive" />} />
-                  <Route path="/admin/reports" element={<MockPage title="Financial Reports" />} />
-                  <Route path="/admin/settings" element={<MockPage title="School Settings" />} />
-                </Route>
+              <Route element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/admin/students" element={<Students />} />
+                <Route path="/admin/bank-matching" element={<MockPage title="Bank Statement Matching" />} />
+                <Route path="/admin/payments" element={<MockPage title="Payments History" />} />
+                <Route path="/admin/classes" element={<MockPage title="Classes Management" />} />
+                <Route path="/admin/fees" element={<MockPage title="Fee Structure" />} />
+                <Route path="/admin/receipts" element={<MockPage title="Receipts Archive" />} />
+                <Route path="/admin/reports" element={<MockPage title="Financial Reports" />} />
+                <Route path="/admin/settings" element={<MockPage title="School Settings" />} />
               </Route>
 
-              <Route element={<ProtectedRoute type="parent" />}>
-                <Route path="/parent/dashboard" element={<MockPage title="Parent Dashboard" />} />
-              </Route>
-
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
           </AuthProvider>
