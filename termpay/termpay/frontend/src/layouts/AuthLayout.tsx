@@ -15,11 +15,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="min-h-screen flex bg-white">
       {/* Left Panel - Desktop Only */}
-      <div className="hidden lg:flex lg:w-[45%] bg-navy p-12 flex-col justify-between text-white relative overflow-hidden">
-        {/* Background Accents */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-blue/10 rounded-full blur-3xl -mr-32 -mt-32" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-blue/10 rounded-full blur-3xl -ml-32 -mb-32" />
-
+      <div className="hidden lg:flex lg:w-[45%] bg-navy p-12 flex-col justify-between text-white relative">
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-16">
             <div className="w-10 h-10 bg-brand-blue rounded-xl flex items-center justify-center font-bold text-xl">T</div>
@@ -34,7 +30,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             <ul className="space-y-6">
               {features.map((feature, i) => (
                 <li key={i} className="flex items-start gap-4">
-                  <div className="mt-1 bg-brand-blue/20 p-1 rounded-full text-brand-blue shrink-0">
+                  <div className="mt-1 text-brand-blue shrink-0">
                     <CheckCircle2 className="w-5 h-5" />
                   </div>
                   <span className="text-lg text-slate-200">{feature}</span>

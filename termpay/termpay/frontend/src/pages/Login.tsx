@@ -68,15 +68,13 @@ const Login: React.FC = () => {
           />
           <Button
             type="submit"
+            variant="navy"
             className="w-full mt-2"
             loading={isLoading}
           >
-            Login as Admin
+            Sign in
           </Button>
         </form>
-        <div className="mt-6 text-center text-sm text-text-secondary">
-          Are you a parent? <Link to="/parent/login" className="text-brand-blue font-semibold hover:underline">Login here</Link>
-        </div>
       </Card>
     </AuthLayout>
   );
