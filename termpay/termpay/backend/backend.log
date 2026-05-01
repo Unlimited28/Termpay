@@ -1,0 +1,9 @@
+
+> dev
+> ts-node-dev --respawn --transpile-only server.ts
+
+[INFO] 08:52:33 ts-node-dev ver. 2.0.0 (using ts-node ver. 10.9.2, typescript ver. 6.0.3)
+◇ injecting env (8) from .env // tip: ⌘ override existing { override: true }
+SUPABASE_URL: loaded
+SERVICE_ROLE_KEY: loaded
+TermPay Backend listening on port 3001
