@@ -1,12 +1,14 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? 'loaded' : 'missing');
-console.log('SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'loaded' : 'missing');
+console.log('Server started');
+console.log('Environment:', process.env.NODE_ENV);
+console.log('Supabase URL exists:', !!process.env.SUPABASE_URL);
+console.log('Service role exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 import express from 'express';
 import cors from 'cors';
-import { createClient } from '@supabase/supabase-js';
+import apiRoutes from './src/routes';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -18,14 +20,46 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Global Debug Route
+app.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'TermPay backend is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Health Check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date() });
+  res.json({
+    server: 'running',
+    uptime: process.uptime()
+  });
+});
+
+// Route Visibility Check
+app.get('/debug/routes', (req, res) => {
+  res.json({
+    message: 'Routes debug active'
+  });
+});
+
+// API Routes
+app.use('/api', apiRoutes);
+
+// Handle Unknown Routes
+app.use((req: any, res: any) => {
+  res.status(404).json({
+    error: 'Route not found',
+    path: req.originalUrl
+  });
 });
 
 // Start Server
-app.listen(port, () => {
-  console.log(`TermPay Backend listening on port ${port}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(port, () => {
+    console.log(`TermPay Backend listening on port ${port}`);
+  });
+}
 
 export default app;
