@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "termpay/termpay/backend/server.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "termpay/termpay/backend/server.ts"
+    },
+    {
+      "src": "/health",
+      "dest": "termpay/termpay/backend/server.ts"
+    },
+    {
+      "src": "/debug/(.*)",
+      "dest": "termpay/termpay/backend/server.ts"
+    },
+    {
+      "src": "/",
+      "dest": "termpay/termpay/backend/server.ts"
+    }
+  ]
+}

@@ -56,7 +56,7 @@ app.use((req: any, res: any) => {
 });
 
 // Start Server
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   app.listen(port, () => {
     console.log(`TermPay Backend listening on port ${port}`);
   });
