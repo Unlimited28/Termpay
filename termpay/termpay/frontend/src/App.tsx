@@ -10,8 +10,9 @@ import { AdminLayout, AuthLayout } from './layouts';
 import { Card, Input, Button } from './components/ui';
 
 // Pages
-import Dashboard from './pages/Dashboard/Dashboard';
-import Students from './pages/Students/Students';
+import Dashboard from './pages/dashboard/Dashboard';
+import { StudentsList as Students } from './pages/students/StudentsList';
+import { StudentProfile } from './pages/students/StudentProfile';
 import Login from './pages/Login';
 import UIPreview from './pages/UIPreview';
 
@@ -52,6 +53,8 @@ function App() {
               <Route element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/admin/students" element={<Students />} />
+                <Route path="/students" element={<Navigate to="/admin/students" replace />} />
+                <Route path="/students/:id" element={<StudentProfile />} />
                 <Route path="/admin/bank-matching" element={<MockPage title="Bank Statement Matching" />} />
                 <Route path="/admin/payments" element={<MockPage title="Payments History" />} />
                 <Route path="/admin/classes" element={<MockPage title="Classes Management" />} />

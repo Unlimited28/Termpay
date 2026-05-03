@@ -13,7 +13,7 @@ const Login: React.FC = () => {
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { addToast } = useToast();
+  const { toast } = useToast();
 
   const from = location.state?.from?.pathname || '/dashboard';
 
@@ -21,7 +21,7 @@ const Login: React.FC = () => {
     e.preventDefault();
 
     if (!email || !password) {
-      addToast('Please fill in all fields', 'error');
+      toast.error('Please fill in all fields');
       return;
     }
 
@@ -31,13 +31,13 @@ const Login: React.FC = () => {
       const { error } = await signIn(email, password);
 
       if (error) {
-        addToast('Invalid email or password', 'error');
+        toast.error('Invalid email or password');
       } else {
-        addToast('Login successful', 'success');
+        toast.success('Login successful');
         navigate(from, { replace: true });
       }
     } catch (err) {
-      addToast('An unexpected error occurred', 'error');
+      toast.error('An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }

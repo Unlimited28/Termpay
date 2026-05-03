@@ -8,9 +8,10 @@ import { Button } from '../../components/ui/Button';
 import { LoadingSkeleton } from '../../components/ui/LoadingSkeleton';
 import { ArrowLeft, User, Phone, BookOpen, CreditCard } from 'lucide-react';
 import { studentService, Student } from '../../services/studentService';
-import { toast } from 'react-hot-toast';
+import { useToast } from '../../context/ToastContext';
 
 export function StudentProfile() {
+  const { toast } = useToast();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [student, setStudent] = useState<Student | null>(null);

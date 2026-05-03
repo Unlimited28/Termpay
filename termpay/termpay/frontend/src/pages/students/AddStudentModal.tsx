@@ -5,7 +5,7 @@ import { Select } from '../../components/ui/Select';
 import { Button } from '../../components/ui/Button';
 import { studentService } from '../../services/studentService';
 import { Class } from '../../services/classService';
-import { toast } from 'react-hot-toast';
+import { useToast } from '../../context/ToastContext';
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -15,6 +15,7 @@ interface AddStudentModalProps {
 }
 
 export function AddStudentModal({ isOpen, onClose, classes, onSuccess }: AddStudentModalProps) {
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',

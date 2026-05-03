@@ -12,7 +12,7 @@ import { useToast } from '../context/ToastContext';
 import { Search, Mail, Plus } from 'lucide-react';
 
 export default function UIPreview() {
-  const { addToast } = useToast();
+  const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [selectValue, setSelectValue] = React.useState('');
 
@@ -102,10 +102,10 @@ export default function UIPreview() {
         <section>
           <h2 className="text-xl font-bold mb-6">Toasts</h2>
           <div className="flex flex-wrap gap-4">
-            <button onClick={() => addToast('Success message!', 'success')} className="btn-primary px-4 py-2 bg-brand-green text-white rounded">Success Toast</button>
-            <button onClick={() => addToast('Error message!', 'error')} className="btn-primary px-4 py-2 bg-brand-red text-white rounded">Error Toast</button>
-            <button onClick={() => addToast('Warning message!', 'warning')} className="btn-primary px-4 py-2 bg-brand-amber text-white rounded">Warning Toast</button>
-            <button onClick={() => addToast('Info message!', 'info')} className="btn-primary px-4 py-2 bg-brand-blue text-white rounded">Info Toast</button>
+            <button onClick={() => toast.success('Success message!')} className="btn-primary px-4 py-2 bg-brand-green text-white rounded">Success Toast</button>
+            <button onClick={() => toast.error('Error message!')} className="btn-primary px-4 py-2 bg-brand-red text-white rounded">Error Toast</button>
+            <button onClick={() => toast.warning('Warning message!')} className="btn-primary px-4 py-2 bg-brand-amber text-white rounded">Warning Toast</button>
+            <button onClick={() => toast.info('Info message!')} className="btn-primary px-4 py-2 bg-brand-blue text-white rounded">Info Toast</button>
           </div>
         </section>
 
