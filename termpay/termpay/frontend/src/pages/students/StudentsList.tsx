@@ -66,7 +66,7 @@ export function StudentsList() {
   };
 
   return (
-    <AdminLayout>
+    <div className="space-y-6">
       <PageHeader
         title="Students"
         description="Manage your student records and payment statuses"
@@ -166,6 +166,6 @@ export function StudentsList() {
         classes={classes}
         onSuccess={fetchData}
       />
-    </AdminLayout>
+    </div>
   );
 }

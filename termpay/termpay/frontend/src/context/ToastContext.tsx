@@ -10,6 +10,12 @@ interface Toast {
 }
 
 interface ToastContextType {
+  toast: {
+    success: (message: string) => void;
+    error: (message: string) => void;
+    warning: (message: string) => void;
+    info: (message: string) => void;
+  };
   addToast: (message: string, type: ToastType) => void;
   removeToast: (id: string) => void;
 }
@@ -38,8 +44,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }, 4000);
   }, [removeToast]);
 
+  const toast = React.useMemo(() => ({
+    success: (message: string) => addToast(message, 'success'),
+    error: (message: string) => addToast(message, 'error'),
+    warning: (message: string) => addToast(message, 'warning'),
+    info: (message: string) => addToast(message, 'info'),
+  }), [addToast]);
+
   return (
-    <ToastContext.Provider value={{ addToast, removeToast }}>
+    <ToastContext.Provider value={{ toast, addToast, removeToast }}>
       {children}
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-3 pointer-events-none">
         {toasts.map((toast) => (
