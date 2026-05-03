@@ -9,6 +9,7 @@ const router = express.Router();
 router.use('/auth', authRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/students', studentRoutes);
+router.use('/classes', classRoutes);
 
 // Test DB route
 router.get('/test-db', async (req: any, res: any) => {
