@@ -9,7 +9,7 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  Check,
+  CheckCircle2,
   AlertCircle
 } from 'lucide-react'
 import { AdminLayout } from '../../layouts'
@@ -163,244 +163,258 @@ const StudentsPage = () => {
 
   return (
     <AdminLayout>
-      {isProprietor && (
-        <div className="mb-6 flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl text-blue-700">
-          <AlertCircle size={18} />
-          <p className="text-[14px] font-medium">You are viewing as Proprietor — contact your Bursar to make changes.</p>
-        </div>
-      )}
-
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-[28px] font-bold text-[#0F172A] tracking-tight">Students</h1>
-          <p className="text-[14px] text-[#64748B]">{filteredStudents.length} students enrolled</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={handleExport}>
-            <Download size={18} className="mr-2" />
-            Export
-          </Button>
-          {!isProprietor && (
-            <Button
-              onClick={() => setIsModalOpen(true)}
-              style={{ background: 'linear-gradient(135deg, #0D2137 0%, #1B3A5C 100%)' }}
-              className="px-6"
-            >
-              <Plus size={18} className="mr-2" />
-              Add Student
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Stats Bar */}
-      <div className="flex items-center gap-4 mb-6 text-[13px] font-medium">
-        <span className="text-[#1565C0]">{stats.total} Total</span>
-        <span className="text-[#94A3B8]">·</span>
-        <span className="text-[#2E7D32]">{stats.paid} Paid</span>
-        <span className="text-[#94A3B8]">·</span>
-        <span className="text-[#E65100]">{stats.partial} Partial</span>
-        <span className="text-[#94A3B8]">·</span>
-        <span className="text-[#B71C1C]">{stats.unpaid} Unpaid</span>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="mb-6 p-4 bg-[#F8FAFC] rounded-[8px] flex flex-col md:flex-row gap-4">
-        <div className="flex-1">
-          <Input
-            placeholder="Search by name, class or phone..."
-            icon={<Search size={18} />}
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value)
-              setCurrentPage(1)
-            }}
-            className="min-w-0 md:min-w-[280px]"
-          />
-        </div>
-        <div className="w-full md:w-48">
-          <Select
-            options={classOptions}
-            value={classFilter}
-            onChange={(e) => {
-              setClassFilter(e.target.value)
-              setCurrentPage(1)
-            }}
-          />
-        </div>
-        <div className="w-full md:w-48">
-          <Select
-            options={statusOptions}
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value)
-              setCurrentPage(1)
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Students Table */}
-      <Card className="p-0">
-        {/* Desktop View */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr>
-                <th className="px-6 py-4">#</th>
-                <th className="px-6 py-4">Student Name + Class</th>
-                <th className="px-6 py-4">Parent Phone</th>
-                <th className="px-6 py-4 text-right">Amount Paid</th>
-                <th className="px-6 py-4 text-right">Balance</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedStudents.length > 0 ? (
-                paginatedStudents.map((student, i) => (
-                  <tr key={student.id} className="group">
-                    <td className="px-6 py-4 text-text-secondary">{(currentPage - 1) * itemsPerPage + i + 1}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#0F172A]">{student.fullName}</span>
-                        <span className="text-[12px] text-[#94A3B8]">{student.className}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">{student.parentPhone}</td>
-                    <td className={`px-6 py-4 text-right ${student.status === 'paid' ? 'font-bold text-brand-green' : 'font-normal text-[#64748B]'}`}>
-                      ₦{student.amountPaid.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {student.balance === 0 ? (
-                        <div className="flex justify-end">
-                          <Check size={18} className="text-brand-green" />
-                        </div>
-                      ) : (
-                        <span className="font-medium text-brand-red">₦{student.balance.toLocaleString()}</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge variant={student.status} className="text-[10px] uppercase font-bold tracking-wider">
-                        {student.status}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => navigate(`/students/${student.id}`)}
-                          className="p-1.5 rounded-lg hover:bg-slate-100 text-text-secondary hover:text-text-primary transition-colors"
-                        >
-                          <Eye size={18} />
-                        </button>
-                        {!isProprietor && (
-                          <button
-                            onClick={() => handleSendReminder(student)}
-                            className="p-1.5 rounded-lg hover:bg-slate-100 text-text-secondary hover:text-text-primary transition-colors"
-                          >
-                            <MessageSquare size={18} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="py-12">
-                    <EmptyState
-                      icon={Users}
-                      title="No students found"
-                      description="Try adjusting your search or filters to find what you're looking for."
-                    />
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile View */}
-        <div className="md:hidden divide-y divide-surface-border">
-          {paginatedStudents.length > 0 ? (
-            paginatedStudents.map((student) => (
-              <div key={student.id} className="p-4 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-[#0F172A]">{student.fullName}</h3>
-                    <p className="text-xs text-[#94A3B8]">{student.className}</p>
-                  </div>
-                  <Badge variant={student.status} className="text-[10px] uppercase">
-                    {student.status}
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="text-[10px] text-[#94A3B8] uppercase font-semibold">Balance</p>
-                    <p className={`text-sm font-bold ${student.balance === 0 ? 'text-brand-green' : 'text-brand-red'}`}>
-                      {student.balance === 0 ? 'Fully Paid' : `₦${student.balance.toLocaleString()}`}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => navigate(`/students/${student.id}`)}
-                      className="p-2 bg-slate-50 rounded-lg text-text-secondary"
-                    >
-                      <Eye size={18} />
-                    </button>
-                    {!isProprietor && (
-                      <button
-                        onClick={() => handleSendReminder(student)}
-                        className="p-2 bg-slate-50 rounded-lg text-text-secondary"
-                      >
-                        <MessageSquare size={18} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="py-12">
-              <EmptyState
-                icon={Users}
-                title="No students found"
-                description="Try adjusting your search or filters."
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-surface-border flex items-center justify-between">
-            <p className="text-sm text-text-secondary">
-              Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium">{Math.min(currentPage * itemsPerPage, filteredStudents.length)}</span> of <span className="font-medium">{filteredStudents.length}</span> students
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => prev - 1)}
-              >
-                <ChevronLeft size={16} />
-              </Button>
-              <div className="flex items-center px-4 text-sm font-medium">
-                Page {currentPage} of {totalPages}
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(prev => prev + 1)}
-              >
-                <ChevronRight size={16} />
-              </Button>
-            </div>
+      <div className="animate-in fade-in slide-up duration-400">
+        {isProprietor && (
+          <div className="mb-6 flex items-center gap-3 p-4 bg-info/8 border border-info/12 rounded-xl text-info-light">
+            <AlertCircle size={18} />
+            <p className="text-[14px] font-medium">You are viewing as Proprietor — contact your Bursar to make changes.</p>
           </div>
         )}
-      </Card>
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-[28px] font-bold text-ink-primary tracking-tighter">Students</h1>
+            <p className="text-[14px] text-ink-secondary">{filteredStudents.length} students enrolled</p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={handleExport}>
+              <Download size={18} className="mr-2" />
+              Export
+            </Button>
+            {!isProprietor && (
+              <Button
+                onClick={() => setIsModalOpen(true)}
+              >
+                <Plus size={18} className="mr-2" />
+                Add Student
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="flex items-center gap-6 mb-8 p-4 bg-white/[0.02] border border-white/6 rounded-xl text-[13px] font-medium">
+          <div className="flex items-center gap-2">
+            <span className="text-ink-primary font-bold">{stats.total}</span>
+            <span className="text-ink-muted">Total</span>
+          </div>
+          <div className="w-px h-4 bg-white/10" />
+          <div className="flex items-center gap-2">
+            <span className="text-emerald font-bold">{stats.paid}</span>
+            <span className="text-ink-muted">Paid</span>
+          </div>
+          <div className="w-px h-4 bg-white/10" />
+          <div className="flex items-center gap-2">
+            <span className="text-warning font-bold">{stats.partial}</span>
+            <span className="text-ink-muted">Partial</span>
+          </div>
+          <div className="w-px h-4 bg-white/10" />
+          <div className="flex items-center gap-2">
+            <span className="text-danger font-bold">{stats.unpaid}</span>
+            <span className="text-ink-muted">Unpaid</span>
+          </div>
+        </div>
+
+        {/* Filter Bar */}
+        <div className="mb-6 p-4 bg-white/[0.02] border border-white/6 rounded-xl flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <Input
+              placeholder="Search by name, class or phone..."
+              icon={<Search size={18} />}
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="w-full"
+            />
+          </div>
+          <div className="w-full md:w-48">
+            <Select
+              options={classOptions}
+              value={classFilter}
+              onChange={(e) => {
+                setClassFilter(e.target.value)
+                setCurrentPage(1)
+              }}
+            />
+          </div>
+          <div className="w-full md:w-48">
+            <Select
+              options={statusOptions}
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value)
+                setCurrentPage(1)
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Students Table */}
+        <Card className="p-0 overflow-hidden">
+          {/* Desktop View */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-transparent">
+                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569]">#</th>
+                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569]">Student Name + Class</th>
+                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569]">Parent Phone</th>
+                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Amount Paid</th>
+                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Balance</th>
+                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569]">Status</th>
+                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.04]">
+                {paginatedStudents.length > 0 ? (
+                  paginatedStudents.map((student, i) => (
+                    <tr key={student.id} className="group hover:bg-white/[0.02] transition-colors">
+                      <td className="px-6 py-4 text-[13px] text-[#475569]">{(currentPage - 1) * itemsPerPage + i + 1}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-ink-primary">{student.fullName}</span>
+                          <span className="text-[12px] text-[#475569]">{student.className}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-ink-secondary">{student.parentPhone}</td>
+                      <td className={`px-6 py-4 text-right text-sm ${student.status === 'paid' ? 'font-bold text-emerald' : 'text-ink-secondary'}`}>
+                        ₦{student.amountPaid.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {student.balance === 0 ? (
+                          <div className="flex justify-end">
+                            <CheckCircle2 size={18} className="text-emerald" />
+                          </div>
+                        ) : (
+                          <span className="text-sm font-bold text-danger">₦{student.balance.toLocaleString()}</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge variant={student.status} className="uppercase tracking-widest font-black">
+                          {student.status}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => navigate(`/students/${student.id}`)}
+                            className="p-1.5 rounded-lg hover:bg-white/5 text-ink-muted hover:text-ink-primary transition-colors"
+                          >
+                            <Eye size={18} />
+                          </button>
+                          {!isProprietor && (
+                            <button
+                              onClick={() => handleSendReminder(student)}
+                              className="p-1.5 rounded-lg hover:bg-white/5 text-ink-muted hover:text-ink-primary transition-colors"
+                            >
+                              <MessageSquare size={18} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="py-20 text-center">
+                      <EmptyState
+                        icon={Users}
+                        title="No students found"
+                        description="Try adjusting your search or filters to find what you're looking for."
+                      />
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile View */}
+          <div className="md:hidden divide-y divide-white/[0.04]">
+            {paginatedStudents.length > 0 ? (
+              paginatedStudents.map((student) => (
+                <div key={student.id} className="p-4 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-ink-primary">{student.fullName}</h3>
+                      <p className="text-xs text-[#475569]">{student.className}</p>
+                    </div>
+                    <Badge variant={student.status} className="uppercase">
+                      {student.status}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-[10px] text-[#475569] uppercase font-bold tracking-widest mb-1">Balance</p>
+                      <p className={`text-sm font-bold ${student.balance === 0 ? 'text-emerald' : 'text-danger'}`}>
+                        {student.balance === 0 ? 'Fully Paid' : `₦${student.balance.toLocaleString()}`}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => navigate(`/students/${student.id}`)}
+                        className="p-2 bg-white/4 rounded-lg text-ink-muted"
+                      >
+                        <Eye size={18} />
+                      </button>
+                      {!isProprietor && (
+                        <button
+                          onClick={() => handleSendReminder(student)}
+                          className="p-2 bg-white/4 rounded-lg text-ink-muted"
+                        >
+                          <MessageSquare size={18} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-12">
+                <EmptyState
+                  icon={Users}
+                  title="No students found"
+                  description="Try adjusting your search or filters."
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-white/[0.04] flex items-center justify-between">
+              <p className="text-[13px] text-ink-muted">
+                Showing <span className="text-ink-secondary font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-ink-secondary font-medium">{Math.min(currentPage * itemsPerPage, filteredStudents.length)}</span> of <span className="text-ink-secondary font-medium">{filteredStudents.length}</span>
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                  className="h-8 w-8 !p-0"
+                >
+                  <ChevronLeft size={16} />
+                </Button>
+                <div className="flex items-center px-2 text-[13px] font-medium text-ink-secondary">
+                   {currentPage} / {totalPages}
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  className="h-8 w-8 !p-0"
+                >
+                  <ChevronRight size={16} />
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
+      </div>
 
       {/* Add Student Modal */}
       <Modal
@@ -408,13 +422,13 @@ const StudentsPage = () => {
         onClose={() => setIsModalOpen(false)}
         title="Add New Student"
         footer={
-          <>
+          <div className="flex gap-3">
             <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button onClick={handleAddStudent}>Add Student</Button>
-          </>
+          </div>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-6">
           <Input
             label="Full Name"
             placeholder="e.g. John Doe"

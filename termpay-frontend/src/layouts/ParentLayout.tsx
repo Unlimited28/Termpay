@@ -16,19 +16,19 @@ const ParentLayout = ({ children }: ParentLayoutProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-surface-bg flex flex-col">
+    <div className="min-h-screen bg-base flex flex-col">
       <Toast />
 
-      <header className="h-16 bg-white border-b border-surface-border px-4 md:px-8 flex items-center justify-between sticky top-0 z-30">
+      <header className="h-16 bg-base/90 backdrop-blur-[12px] border-b border-white/6 px-4 md:px-8 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <Logo />
-          <div className="hidden sm:block h-5 w-px bg-surface-border" />
-          <span className="hidden sm:block text-sm font-medium text-text-secondary uppercase tracking-wider">Parent Portal</span>
+          <div className="hidden sm:block h-5 w-px bg-white/10" />
+          <span className="hidden sm:block text-[11px] font-bold text-ink-muted uppercase tracking-[0.1em]">Parent Portal</span>
         </div>
 
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 text-text-secondary hover:text-text-primary text-sm font-medium transition-colors"
+          className="flex items-center gap-2 text-ink-muted hover:text-ink-primary text-sm font-medium transition-colors"
         >
           <LogOut size={18} />
           <span className="hidden sm:inline">Logout</span>

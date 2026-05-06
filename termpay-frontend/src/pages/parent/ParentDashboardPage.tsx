@@ -1,7 +1,7 @@
 import { ParentLayout } from '../../layouts'
 import { Card, Button } from '../../components/ui'
 import { Download, CheckCircle, CreditCard } from 'lucide-react'
-import { mockStudents, mockRecentPayments, mockTerm, mockSchool } from '../../mock/mockData'
+import { mockStudents, mockRecentPayments, mockTerm } from '../../mock/mockData'
 import { useToast } from '../../context/ToastContext'
 
 const ParentDashboardPage = () => {
@@ -11,21 +11,9 @@ const ParentDashboardPage = () => {
   const payments = mockRecentPayments.filter(p => p.studentId === student.id)
 
   const getStatusColor = () => {
-    if (student.status === 'paid') return '#2E7D32'
-    if (student.status === 'partial') return '#E65100'
-    return '#B71C1C'
-  }
-
-  const getStatusBg = () => {
-    if (student.status === 'paid') return 'bg-green-50'
-    if (student.status === 'partial') return 'bg-amber-50'
-    return 'bg-red-50'
-  }
-
-  const getStatusText = () => {
-    if (student.status === 'paid') return 'text-brand-green'
-    if (student.status === 'partial') return 'text-brand-amber'
-    return 'text-brand-red'
+    if (student.status === 'paid') return '#10B981'
+    if (student.status === 'partial') return '#F59E0B'
+    return '#EF4444'
   }
 
   const handleDownload = (receiptNo: string) => {
@@ -41,73 +29,73 @@ const ParentDashboardPage = () => {
 
   return (
     <ParentLayout>
-      <div className="space-y-6">
+      <div className="space-y-8 animate-in fade-in slide-up duration-500">
         {/* Child Header Card */}
         <div
-          className="rounded-2xl p-6 shadow-sm flex items-center gap-4 bg-white"
-          style={{ borderTop: `4px solid ${getStatusColor()}` }}
+          className="rounded-[16px] p-6 shadow-[0_4px_24px_rgba(0,0,0,0.3)] flex items-center gap-5 bg-surface border border-white/6"
+          style={{ borderTop: `3px solid ${getStatusColor()}` }}
         >
-          <div className={`w-[48px] h-[48px] rounded-full flex items-center justify-center text-lg font-bold ${getStatusBg()} ${getStatusText()}`}>
+          <div className="w-[52px] h-[52px] rounded-full flex items-center justify-center text-lg font-black text-white shadow-lg" style={{ background: 'linear-gradient(135deg, #10B981, #059669)' }}>
             {student.fullName.split(' ').map(n => n[0]).join('')}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-[#0F172A]">{student.fullName}</h1>
-            <p className="text-[#64748B] font-medium text-sm">
-              {student.className} • {mockTerm.name} {mockTerm.session}
+            <h1 className="text-[20px] font-bold text-ink-primary tracking-tight">{student.fullName}</h1>
+            <p className="text-[#64748B] font-bold text-[13px] uppercase tracking-widest mt-0.5">
+              {student.className} • {mockTerm.name}
             </p>
           </div>
         </div>
 
-        {/* Status Card */}
+        {/* Fully Paid Card */}
         <div
-          className="bg-white rounded-2xl border border-[rgba(46,125,50,0.2)] p-12 shadow-sm text-center animate-in zoom-in-95 duration-300 relative overflow-hidden"
+          className="bg-emerald/[0.06] rounded-[20px] border border-emerald/20 p-12 text-center animate-in zoom-in-95 duration-500 relative overflow-hidden"
         >
-          {/* Subtle green radial gradient behind icon */}
+          {/* Subtle green glow behind icon */}
           <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] pointer-events-none opacity-20"
-            style={{ background: 'radial-gradient(circle, rgba(46,125,50,0.4) 0%, transparent 70%)' }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)' }}
           />
 
           <div className="flex flex-col items-center relative z-10">
-            <div className="text-[#2E7D32] mb-6 drop-shadow-sm">
+            <div className="text-emerald mb-8 shadow-[0_0_24px_rgba(16,185,129,0.4)] rounded-full">
               <CheckCircle size={64} />
             </div>
-            <h2 className="text-[28px] font-900 font-black text-[#0F172A] mb-2 tracking-tight">FULLY PAID ✓</h2>
-            <p className="text-[#64748B] font-medium max-w-xs mx-auto">
+            <h2 className="text-[28px] font-black text-emerald mb-2 tracking-tighter">FULLY PAID ✓</h2>
+            <p className="text-[#64748B] font-medium max-w-xs mx-auto text-[15px]">
               Your fees for this term have been fully settled. Thank you!
             </p>
           </div>
         </div>
 
         {/* Fee Breakdown Card */}
-        <Card title="Fee Breakdown" subtitle={`Details for ${mockTerm.name}`}>
-          <div className="space-y-4">
-            <div className="overflow-hidden rounded-xl border border-surface-border">
+        <Card title="Fee Breakdown" subtitle={`Details for ${mockTerm.name}`} className="p-0 overflow-hidden">
+          <div className="space-y-0">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 text-left">
-                    <th className="px-6 py-3 font-semibold text-text-secondary uppercase tracking-wider">Description</th>
-                    <th className="px-6 py-3 font-semibold text-text-secondary text-right uppercase tracking-wider">Amount</th>
+                  <tr className="bg-white/2 text-left">
+                    <th className="px-6 py-4 text-[11px] font-bold text-[#475569] uppercase tracking-widest">Description</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-[#475569] uppercase tracking-widest text-right">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-surface-border">
+                <tbody className="divide-y divide-white/[0.04]">
                   {feeItems.map((item, i) => (
                     <tr key={i}>
-                      <td className="px-6 py-3 text-text-primary font-medium">{item.item}</td>
-                      <td className="px-6 py-3 text-text-primary text-right font-medium">₦{item.amount.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-ink-secondary font-medium">{item.item}</td>
+                      <td className="px-6 py-4 text-ink-primary text-right font-bold">₦{item.amount.toLocaleString()}</td>
                     </tr>
                   ))}
-                  <tr className="border-t-[2px] border-surface-border">
-                    <td className="px-6 py-4 font-bold text-text-primary">Total Amount</td>
-                    <td className="px-6 py-4 font-bold text-text-primary text-right text-[16px]">₦{student.totalBill.toLocaleString()}</td>
+                  <tr className="border-t border-white/[0.08] bg-white/[0.01]">
+                    <td className="px-6 py-5 font-bold text-ink-primary">Total Amount</td>
+                    <td className="px-6 py-5 font-black text-ink-primary text-right text-[17px]">₦{student.totalBill.toLocaleString()}</td>
                   </tr>
-                  <tr className="bg-[#2E7D32]/[0.05]">
-                    <td className="px-6 py-4 font-bold text-[#2E7D32]">Amount Paid</td>
-                    <td className="px-6 py-4 font-bold text-[#2E7D32] text-right">₦{student.amountPaid.toLocaleString()}</td>
+                  <tr className="bg-emerald/[0.02]">
+                    <td className="px-6 py-5 font-bold text-emerald">Amount Paid</td>
+                    <td className="px-6 py-5 font-black text-emerald text-right">₦{student.amountPaid.toLocaleString()}</td>
                   </tr>
-                  <tr className="bg-[#2E7D32]/[0.05]">
-                    <td className="px-6 py-4 font-bold text-[#2E7D32]">Balance</td>
-                    <td className="px-6 py-4 font-bold text-[#2E7D32] text-right italic">Fully Settled</td>
+                  <tr className="bg-emerald/[0.02]">
+                    <td className="px-6 py-5 font-bold text-emerald">Balance</td>
+                    <td className="px-6 py-5 font-black text-emerald text-right italic">Fully Settled</td>
                   </tr>
                 </tbody>
               </table>
@@ -115,59 +103,32 @@ const ParentDashboardPage = () => {
           </div>
         </Card>
 
-        {/* Bank Instructions (Hidden if balance is 0, but added for completeness if needed) */}
-        {student.balance > 0 && (
-          <Card title="Payment Instructions" className="border-brand-blue/30 bg-blue-50/30">
-            <div className="space-y-4">
-              <p className="text-sm text-text-secondary">Please use the details below for bank transfers:</p>
-              <div className="p-4 bg-white rounded-lg border border-brand-blue/20 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-text-secondary">Bank Name</span>
-                  <span className="font-bold text-text-primary">{mockSchool.bankName}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-text-secondary">Account Number</span>
-                  <span className="font-bold text-text-primary">{mockSchool.accountNumber}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-text-secondary">Account Name</span>
-                  <span className="font-bold text-text-primary">{mockSchool.accountName}</span>
-                </div>
-                <div className="pt-2 border-t border-surface-border flex justify-between text-sm">
-                  <span className="text-text-secondary font-bold text-brand-blue">Payment Reference</span>
-                  <span className="font-black text-brand-blue font-mono">{student.paymentReference}</span>
-                </div>
-              </div>
-            </div>
-          </Card>
-        )}
-
         {/* Payment History */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold text-text-primary px-1">Payment History</h3>
-          <div className="space-y-3">
+        <div className="space-y-5">
+          <h3 className="text-[17px] font-bold text-ink-primary px-1 tracking-tight">Payment History</h3>
+          <div className="space-y-4">
             {payments.map((p) => (
-              <div key={p.id} className="bg-white p-4 rounded-2xl border border-surface-border shadow-sm flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-text-secondary">
+              <div key={p.id} className="bg-surface p-5 rounded-[16px] border border-white/6 shadow-[0_4px_24px_rgba(0,0,0,0.3)] flex items-center justify-between transition-all hover:border-white/12">
+                <div className="flex items-center gap-5">
+                  <div className="w-11 h-11 rounded-xl bg-white/4 flex items-center justify-center text-ink-muted border border-white/6">
                     <CreditCard size={20} />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-text-primary">₦{p.amount.toLocaleString()}</p>
-                    <p className="text-xs text-text-secondary">{p.paymentDate} • {p.receiptNumber}</p>
+                    <p className="text-[16px] font-black text-ink-primary tracking-tight">₦{p.amount.toLocaleString()}</p>
+                    <p className="text-xs text-[#475569] font-medium mt-0.5">{p.paymentDate} • {p.receiptNumber}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => handleDownload(p.receiptNumber)}>
-                  <Download size={16} />
+                <Button variant="ghost" size="sm" className="h-10 w-10 !p-0" onClick={() => handleDownload(p.receiptNumber)}>
+                  <Download size={18} />
                 </Button>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="text-center py-8">
-          <p className="text-xs text-text-disabled font-medium uppercase tracking-[0.2em]">
-            Powered by TermPay
+        <div className="text-center py-12">
+          <p className="text-[11px] text-[#334155] font-bold uppercase tracking-[0.25em]">
+            Powered by <span className="text-emerald">TermPay</span> Intelligence
           </p>
         </div>
       </div>

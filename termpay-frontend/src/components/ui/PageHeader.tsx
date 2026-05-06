@@ -25,14 +25,14 @@ const PageHeader = ({ title, subtitle, back, actions }: PageHeaderProps) => {
         {back && (
           <button
             onClick={handleBack}
-            className="p-2 -ml-2 rounded-lg hover:bg-white/50 text-text-secondary hover:text-text-primary transition-colors border border-transparent hover:border-surface-border"
+            className="p-2 -ml-2 rounded-lg hover:bg-white/5 text-ink-secondary hover:text-ink-primary transition-all border border-transparent hover:border-white/10"
           >
             <ArrowLeft size={20} />
           </button>
         )}
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">{title}</h1>
-          {subtitle && <p className="text-sm text-text-secondary mt-1">{subtitle}</p>}
+          <h1 className="text-2xl font-bold text-ink-primary tracking-tight">{title}</h1>
+          {subtitle && <p className="text-sm text-ink-secondary mt-1">{subtitle}</p>}
         </div>
       </div>
       {actions && (

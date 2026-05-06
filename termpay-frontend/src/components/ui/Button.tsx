@@ -9,35 +9,34 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className = '', variant = 'primary', size = 'md', isLoading, children, disabled, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none'
+    const baseStyles = 'inline-flex items-center justify-center font-semibold transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none'
 
     const variants = {
-      primary: 'bg-navy text-white hover:bg-navy-light',
-      secondary: 'bg-white border border-surface-border text-text-primary hover:bg-surface-bg',
-      destructive: 'bg-brand-red text-white hover:bg-red-700',
-      ghost: 'bg-transparent text-text-secondary hover:bg-surface-bg hover:text-text-primary',
+      primary: 'bg-gradient-to-br from-[#10B981] to-[#059669] text-white shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:-translate-y-px shimmer-btn',
+      secondary: 'bg-white/4 border border-white/10 text-ink-primary hover:bg-white/8 hover:border-white/16',
+      destructive: 'bg-danger-subtle border border-danger/30 text-danger hover:bg-danger/20',
+      ghost: 'bg-transparent text-ink-secondary hover:text-ink-primary hover:bg-white/4',
     }
 
     const sizes = {
-      sm: 'px-3 py-1.5 text-xs',
-      md: 'px-4 py-2 text-sm',
-      lg: 'px-6 py-3 text-base',
+      sm: 'px-3 h-8 text-xs rounded-lg',
+      md: 'px-5 h-[44px] text-sm rounded-[10px]',
+      lg: 'px-8 h-12 text-base rounded-[10px]',
     }
 
     const variantStyles = variants[variant] || variants.primary
     const sizeStyles = sizes[size] || sizes.md
-    const shimmerClass = variant === 'primary' ? 'button-shimmer' : ''
 
     return (
       <button
         ref={ref}
         disabled={isLoading || disabled}
-        className={`${baseStyles} ${variantStyles} ${sizeStyles} ${shimmerClass} ${className} relative`}
+        className={`${baseStyles} ${variantStyles} ${sizeStyles} ${className} relative overflow-hidden`}
         {...props}
       >
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 className="w-4 h-4 animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center bg-inherit">
+            <Loader2 className="w-5 h-5 animate-spin" />
           </div>
         )}
         <span className={isLoading ? 'opacity-0' : ''}>{children}</span>
