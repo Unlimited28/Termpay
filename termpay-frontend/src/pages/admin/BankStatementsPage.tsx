@@ -3,12 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import {
   CloudUpload,
   CheckCircle,
-  Loader2,
-  Eye,
-  FileText
+  Loader2
 } from 'lucide-react'
 import { AdminLayout } from '../../layouts'
-import { PageHeader, Card, Button, Badge } from '../../components/ui'
+import { Card, Button, Badge } from '../../components/ui'
 import { mockStatementUploads } from '../../mock/mockData'
 
 const BankStatementsPage = () => {
@@ -52,38 +50,47 @@ const BankStatementsPage = () => {
 
   return (
     <AdminLayout>
-      <PageHeader
-        title="Bank Statements"
-        subtitle="Upload CSV/PDF statements to match payments"
-      />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-[28px] font-bold text-[#0F172A] tracking-tight">Bank Statements</h1>
+          <p className="text-[14px] text-[#64748B]">Upload CSV/PDF statements to match payments</p>
+        </div>
+      </div>
 
-      <Card className="mb-8 p-0 overflow-hidden">
-        <div className="min-h-[320px] flex items-center justify-center p-8 bg-white">
-          {!isUploading ? (
-            <div
-              className="w-full max-w-xl flex flex-col items-center justify-center p-12 border-2 border-dashed border-surface-border rounded-2xl hover:border-brand-blue hover:bg-blue-50/30 transition-all cursor-pointer group"
-              onClick={triggerFileInput}
+      <div className="mb-8">
+        {!isUploading ? (
+          <div
+            className="w-full min-h-[220px] flex flex-col items-center justify-center border-2 border-dashed border-[#CBD5E1] rounded-[20px] cursor-pointer group transition-all duration-200"
+            style={{ background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#1565C0';
+              e.currentTarget.style.background = 'linear-gradient(135deg, #F9FBFE 0%, #F3F7FA 100%)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#CBD5E1';
+              e.currentTarget.style.background = 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)';
+            }}
+            onClick={triggerFileInput}
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+            <CloudUpload size={56} className="text-[#94A3B8] mb-4" />
+            <h3 className="text-[20px] font-semibold text-[#0F172A]">Drop your bank statement here</h3>
+            <p className="text-[14px] text-[#64748B] mt-1 text-center px-4">
+              Supports CSV and PDF from GTBank, Access, Zenith, First Bank and UBA
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-[44px] rounded-[10px] mt-[16px] border-[#E2E8F0]"
             >
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-              <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center mb-6 group-hover:bg-brand-blue/10 group-hover:scale-110 transition-all duration-300">
-                <CloudUpload size={48} className="text-text-disabled group-hover:text-brand-blue" />
-              </div>
-              <h3 className="text-xl font-bold text-text-primary mb-2">Drop your bank statement here</h3>
-              <p className="text-text-secondary mb-6 text-center max-w-xs">
-                Upload your bank statement in CSV or PDF format to auto-match student fees.
-              </p>
-              <Button type="button">
-                Browse Files
-              </Button>
-              <p className="mt-8 text-xs text-text-disabled font-medium uppercase tracking-widest">
-                Supported: GTBank · Access · Zenith · First Bank · UBA
-              </p>
-            </div>
+              Browse Files
+            </Button>
+          </div>
           ) : (
             <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in-95 duration-300">
               <div className="text-center mb-8">
@@ -132,60 +139,104 @@ const BankStatementsPage = () => {
               </div>
             </div>
           )}
-        </div>
-      </Card>
+      </div>
 
       {/* Upload History */}
       <Card title="Previous Uploads" subtitle="View and review past statement matches">
-        <div className="overflow-x-auto -mx-6">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto -mx-6">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-50 text-xs text-text-secondary font-semibold uppercase tracking-wider">
+              <tr>
                 <th className="px-6 py-4">Date</th>
                 <th className="px-6 py-4">File Name</th>
-                <th className="px-6 py-4 text-center">Transactions</th>
                 <th className="px-6 py-4 text-center">Matched</th>
-                <th className="px-6 py-4 text-center">Needs Review</th>
                 <th className="px-6 py-4 text-center">Unmatched</th>
                 <th className="px-6 py-4 text-center">Status</th>
                 <th className="px-6 py-4 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-border">
+            <tbody>
               {mockStatementUploads.map((upload) => (
-                <tr key={upload.id} className="text-sm hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 text-text-secondary">{upload.uploadDate}</td>
+                <tr key={upload.id} className="group transition-colors">
+                  <td className="px-6 py-4 text-[#64748B]">{upload.uploadDate}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <FileText size={16} className="text-brand-blue" />
-                      <span className="font-medium text-text-primary">{upload.fileName}</span>
+                      <div className={`w-[6px] h-[6px] rounded-full ${upload.status === 'ready' ? 'bg-[#4CAF50]' : 'bg-[#E65100]'}`} />
+                      <span className="font-medium text-[#0F172A]">{upload.fileName}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-center font-medium">{upload.totalTransactions}</td>
                   <td className="px-6 py-4 text-center">
-                    <span className="text-brand-green font-bold">{upload.matched}</span>
+                    <span className="text-[#2E7D32] font-semibold">{upload.matched}</span>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <span className="text-brand-amber font-bold">{upload.needsReview}</span>
+                    <span className="text-[#B71C1C] font-semibold">{upload.unmatched}</span>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <span className="text-brand-red font-bold">{upload.unmatched}</span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <Badge variant={upload.status === 'ready' ? 'success' : 'warning'}>
+                    <Badge
+                      variant={upload.status === 'ready' ? 'success' : 'warning'}
+                      className="text-[10px] uppercase"
+                    >
                       {upload.status === 'ready' ? 'Ready' : 'Processing'}
                     </Badge>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => navigate(`/bank-statements/${upload.id}`)}>
-                      <Eye size={16} className="mr-2" />
-                      View
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="text-[13px] border-[#E2E8F0] hover:bg-slate-50 transition-all opacity-0 group-hover:opacity-100"
+                      onClick={() => navigate(`/bank-statements/${upload.id}`)}
+                    >
+                      Review →
                     </Button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-4 -mx-2">
+          {mockStatementUploads.map((upload) => (
+            <div key={upload.id} className="bg-[#F8FAFC] p-4 rounded-xl space-y-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-[6px] h-[6px] rounded-full ${upload.status === 'ready' ? 'bg-[#4CAF50]' : 'bg-[#E65100]'}`} />
+                  <span className="font-bold text-[#0F172A] text-sm truncate">{upload.fileName}</span>
+                </div>
+                <p className="text-xs text-[#64748B] mt-0.5">{upload.uploadDate}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-white p-2 rounded-lg border border-[#E2E8F0]">
+                  <p className="text-[10px] uppercase tracking-wider text-[#94A3B8] font-bold">Matched</p>
+                  <p className="text-sm font-bold text-[#2E7D32]">{upload.matched}</p>
+                </div>
+                <div className="bg-white p-2 rounded-lg border border-[#E2E8F0]">
+                  <p className="text-[10px] uppercase tracking-wider text-[#94A3B8] font-bold">Unmatched</p>
+                  <p className="text-sm font-bold text-[#B71C1C]">{upload.unmatched}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-[#E2E8F0]">
+                <Badge
+                  variant={upload.status === 'ready' ? 'success' : 'warning'}
+                  className="text-[10px] uppercase"
+                >
+                  {upload.status === 'ready' ? 'Ready' : 'Processing'}
+                </Badge>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="text-xs h-8 px-4"
+                  onClick={() => navigate(`/bank-statements/${upload.id}`)}
+                >
+                  Review →
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
       </Card>
     </AdminLayout>

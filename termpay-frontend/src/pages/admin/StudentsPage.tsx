@@ -8,11 +8,11 @@ import {
   Download,
   Users,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Check
 } from 'lucide-react'
 import { AdminLayout } from '../../layouts'
 import {
-  PageHeader,
   Card,
   Button,
   Input,
@@ -22,18 +22,19 @@ import {
   EmptyState
 } from '../../components/ui'
 import { useToast } from '../../context/ToastContext'
-import { mockStudents, mockClasses } from '../../mock/mockData'
+import { useData } from '../../context/DataContext'
+import { mockClasses } from '../../mock/mockData'
 import { type Student } from '../../types'
 
 const StudentsPage = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { students, addStudent } = useData()
 
   // State for filtering
   const [searchTerm, setSearchTerm] = useState('')
   const [classFilter, setClassFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [students, setStudents] = useState<Student[]>(mockStudents)
 
   // State for Modal
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -54,6 +55,7 @@ const StudentsPage = () => {
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
       const matchesSearch = student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           student.className.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            student.parentPhone.includes(searchTerm)
       const matchesClass = classFilter === 'all' || student.classId === classFilter
       const matchesStatus = statusFilter === 'all' || student.status === statusFilter
@@ -61,6 +63,14 @@ const StudentsPage = () => {
       return matchesSearch && matchesClass && matchesStatus
     })
   }, [students, searchTerm, classFilter, statusFilter])
+
+  const stats = useMemo(() => {
+    const total = students.length
+    const paid = students.filter(s => s.status === 'paid').length
+    const partial = students.filter(s => s.status === 'partial').length
+    const unpaid = students.filter(s => s.status === 'unpaid').length
+    return { total, paid, partial, unpaid }
+  }, [students])
 
   // Pagination logic
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage)
@@ -118,7 +128,7 @@ const StudentsPage = () => {
       status: 'unpaid'
     }
 
-    setStudents([studentToAdd, ...students])
+    addStudent(studentToAdd)
     setIsModalOpen(false)
     setNewStudent({ fullName: '', classId: '', parentName: '', parentPhone: '', parentEmail: '' })
     setErrors({})
@@ -139,70 +149,83 @@ const StudentsPage = () => {
 
   return (
     <AdminLayout>
-      <PageHeader
-        title="Students"
-        subtitle={`${filteredStudents.length} students enrolled`}
-        actions={
-          <div className="flex gap-3">
-            <Button variant="secondary" onClick={handleExport}>
-              <Download size={18} className="mr-2" />
-              Export
-            </Button>
-            <Button onClick={() => setIsModalOpen(true)}>
-              <Plus size={18} className="mr-2" />
-              Add Student
-            </Button>
-          </div>
-        }
-      />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-[28px] font-bold text-[#0F172A] tracking-tight">Students</h1>
+          <p className="text-[14px] text-[#64748B]">{filteredStudents.length} students enrolled</p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="secondary" onClick={handleExport}>
+            <Download size={18} className="mr-2" />
+            Export
+          </Button>
+          <Button
+            onClick={() => setIsModalOpen(true)}
+            style={{ background: 'linear-gradient(135deg, #0D2137 0%, #1B3A5C 100%)' }}
+            className="px-6"
+          >
+            <Plus size={18} className="mr-2" />
+            Add Student
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Bar */}
+      <div className="flex items-center gap-4 mb-6 text-[13px] font-medium">
+        <span className="text-[#1565C0]">{stats.total} Total</span>
+        <span className="text-[#94A3B8]">·</span>
+        <span className="text-[#2E7D32]">{stats.paid} Paid</span>
+        <span className="text-[#94A3B8]">·</span>
+        <span className="text-[#E65100]">{stats.partial} Partial</span>
+        <span className="text-[#94A3B8]">·</span>
+        <span className="text-[#B71C1C]">{stats.unpaid} Unpaid</span>
+      </div>
 
       {/* Filter Bar */}
-      <Card className="mb-6 overflow-visible">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Search by name or phone..."
-              icon={<Search size={18} />}
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value)
-                setCurrentPage(1)
-              }}
-            />
-          </div>
-          <div className="w-full md:w-48">
-            <Select
-              options={classOptions}
-              value={classFilter}
-              onChange={(e) => {
-                setClassFilter(e.target.value)
-                setCurrentPage(1)
-              }}
-            />
-          </div>
-          <div className="w-full md:w-48">
-            <Select
-              options={statusOptions}
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value)
-                setCurrentPage(1)
-              }}
-            />
-          </div>
+      <div className="mb-6 p-4 bg-[#F8FAFC] rounded-[8px] flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <Input
+            placeholder="Search by name, class or phone..."
+            icon={<Search size={18} />}
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value)
+              setCurrentPage(1)
+            }}
+            className="min-w-0 md:min-w-[280px]"
+          />
         </div>
-      </Card>
+        <div className="w-full md:w-48">
+          <Select
+            options={classOptions}
+            value={classFilter}
+            onChange={(e) => {
+              setClassFilter(e.target.value)
+              setCurrentPage(1)
+            }}
+          />
+        </div>
+        <div className="w-full md:w-48">
+          <Select
+            options={statusOptions}
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value)
+              setCurrentPage(1)
+            }}
+          />
+        </div>
+      </div>
 
       {/* Students Table */}
       <Card className="p-0">
-        <div className="overflow-x-auto">
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-50 text-xs text-text-secondary font-semibold uppercase tracking-wider">
+              <tr>
                 <th className="px-6 py-4">#</th>
-                <th className="px-6 py-4">Admission No</th>
-                <th className="px-6 py-4">Student Name</th>
-                <th className="px-6 py-4">Class</th>
+                <th className="px-6 py-4">Student Name + Class</th>
                 <th className="px-6 py-4">Parent Phone</th>
                 <th className="px-6 py-4 text-right">Amount Paid</th>
                 <th className="px-6 py-4 text-right">Balance</th>
@@ -210,33 +233,46 @@ const StudentsPage = () => {
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-border">
+            <tbody>
               {paginatedStudents.length > 0 ? (
                 paginatedStudents.map((student, i) => (
-                  <tr key={student.id} className="text-sm hover:bg-slate-50 transition-colors">
+                  <tr key={student.id} className="group">
                     <td className="px-6 py-4 text-text-secondary">{(currentPage - 1) * itemsPerPage + i + 1}</td>
-                    <td className="px-6 py-4 font-medium text-text-primary">{student.admissionNumber}</td>
-                    <td className="px-6 py-4 font-medium text-text-primary">{student.fullName}</td>
-                    <td className="px-6 py-4 text-text-secondary">{student.className}</td>
-                    <td className="px-6 py-4 text-text-secondary">{student.parentPhone}</td>
-                    <td className="px-6 py-4 text-right font-medium text-brand-green">₦{student.amountPaid.toLocaleString()}</td>
-                    <td className="px-6 py-4 text-right font-medium text-brand-red">₦{student.balance.toLocaleString()}</td>
                     <td className="px-6 py-4">
-                      <Badge variant={student.status}>{student.status.charAt(0).toUpperCase() + student.status.slice(1)}</Badge>
+                      <div className="flex flex-col">
+                        <span className="text-[14px] font-medium text-[#0F172A]">{student.fullName}</span>
+                        <span className="text-[12px] text-[#94A3B8]">{student.className}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">{student.parentPhone}</td>
+                    <td className={`px-6 py-4 text-right ${student.status === 'paid' ? 'font-bold text-brand-green' : 'font-normal text-[#64748B]'}`}>
+                      ₦{student.amountPaid.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
+                      {student.balance === 0 ? (
+                        <div className="flex justify-end">
+                          <Check size={18} className="text-brand-green" />
+                        </div>
+                      ) : (
+                        <span className="font-medium text-brand-red">₦{student.balance.toLocaleString()}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant={student.status} className="text-[10px] uppercase font-bold tracking-wider">
+                        {student.status}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => navigate(`/students/${student.id}`)}
                           className="p-1.5 rounded-lg hover:bg-slate-100 text-text-secondary hover:text-text-primary transition-colors"
-                          title="View Profile"
                         >
                           <Eye size={18} />
                         </button>
                         <button
                           onClick={() => handleSendReminder(student)}
                           className="p-1.5 rounded-lg hover:bg-slate-100 text-text-secondary hover:text-text-primary transition-colors"
-                          title="Send Reminder"
                         >
                           <MessageSquare size={18} />
                         </button>
@@ -246,7 +282,7 @@ const StudentsPage = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={9} className="py-12">
+                  <td colSpan={7} className="py-12">
                     <EmptyState
                       icon={Users}
                       title="No students found"
@@ -257,6 +293,55 @@ const StudentsPage = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden divide-y divide-surface-border">
+          {paginatedStudents.length > 0 ? (
+            paginatedStudents.map((student) => (
+              <div key={student.id} className="p-4 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-[#0F172A]">{student.fullName}</h3>
+                    <p className="text-xs text-[#94A3B8]">{student.className}</p>
+                  </div>
+                  <Badge variant={student.status} className="text-[10px] uppercase">
+                    {student.status}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-[10px] text-[#94A3B8] uppercase font-semibold">Balance</p>
+                    <p className={`text-sm font-bold ${student.balance === 0 ? 'text-brand-green' : 'text-brand-red'}`}>
+                      {student.balance === 0 ? 'Fully Paid' : `₦${student.balance.toLocaleString()}`}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => navigate(`/students/${student.id}`)}
+                      className="p-2 bg-slate-50 rounded-lg text-text-secondary"
+                    >
+                      <Eye size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleSendReminder(student)}
+                      className="p-2 bg-slate-50 rounded-lg text-text-secondary"
+                    >
+                      <MessageSquare size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-12">
+              <EmptyState
+                icon={Users}
+                title="No students found"
+                description="Try adjusting your search or filters."
+              />
+            </div>
+          )}
         </div>
 
         {/* Pagination */}

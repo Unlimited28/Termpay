@@ -26,12 +26,13 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variantStyles = variants[variant] || variants.primary
     const sizeStyles = sizes[size] || sizes.md
+    const shimmerClass = variant === 'primary' ? 'button-shimmer' : ''
 
     return (
       <button
         ref={ref}
         disabled={isLoading || disabled}
-        className={`${baseStyles} ${variantStyles} ${sizeStyles} ${className} relative`}
+        className={`${baseStyles} ${variantStyles} ${sizeStyles} ${shimmerClass} ${className} relative`}
         {...props}
       >
         {isLoading && (
