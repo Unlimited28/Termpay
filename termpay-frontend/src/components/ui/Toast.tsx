@@ -13,20 +13,20 @@ const ToastItem = ({ id, variant, message, dismiss }: { id: string; variant: Toa
 
   const variants = {
     success: {
-      border: 'border-brand-green',
-      icon: <CheckCircle className="text-brand-green" size={20} />,
+      border: 'border-l-[#10B981]',
+      icon: <CheckCircle className="text-emerald" size={20} />,
     },
     error: {
-      border: 'border-brand-red',
-      icon: <XCircle className="text-brand-red" size={20} />,
+      border: 'border-l-[#EF4444]',
+      icon: <XCircle className="text-danger" size={20} />,
     },
     warning: {
-      border: 'border-brand-amber',
-      icon: <AlertTriangle className="text-brand-amber" size={20} />,
+      border: 'border-l-[#F59E0B]',
+      icon: <AlertTriangle className="text-warning" size={20} />,
     },
     info: {
-      border: 'border-brand-blue',
-      icon: <Info className="text-brand-blue" size={20} />,
+      border: 'border-l-[#3B82F6]',
+      icon: <Info className="text-info" size={20} />,
     },
   }
 
@@ -34,14 +34,14 @@ const ToastItem = ({ id, variant, message, dismiss }: { id: string; variant: Toa
 
   return (
     <div className={`
-      bg-white rounded-lg shadow-lg border-l-4 p-4 w-80 flex items-start gap-3
+      bg-elevated rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/10 border-l-4 p-4 w-80 flex items-start gap-3
       animate-toast-in ${border} pointer-events-auto
     `}>
       <div className="mt-0.5">{icon}</div>
-      <p className="text-sm text-text-primary flex-1 font-medium">{message}</p>
+      <p className="text-sm text-ink-primary flex-1 font-medium leading-tight">{message}</p>
       <button
         onClick={() => dismiss(id)}
-        className="text-text-disabled hover:text-text-primary transition-colors"
+        className="text-ink-muted hover:text-ink-secondary transition-colors"
       >
         <X size={16} />
       </button>

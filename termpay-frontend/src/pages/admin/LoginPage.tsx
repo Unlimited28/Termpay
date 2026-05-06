@@ -33,82 +33,77 @@ const LoginPage = () => {
 
   return (
     <AuthLayout>
-      <div className="space-y-[32px]">
+      <div className="animate-in fade-in slide-up duration-400">
         <div>
-          <h1 className="text-[32px] font-800 tracking-[-0.03em] font-bold text-[#0F172A]">Welcome Back</h1>
-          <p className="text-[15px] text-[#64748B] mt-[8px]">Sign in to your school dashboard</p>
+          <h1 className="text-[32px] font-800 tracking-[-0.03em] font-black text-ink-primary">Welcome Back</h1>
+          <p className="text-[15px] text-[#64748B] mt-2 mb-8">Sign in to your school dashboard</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-[16px]">
-          <div className="space-y-[8px]">
-            <Input
-              label="Email Address"
-              type="email"
-              placeholder="admin@school.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="h-[48px] rounded-[10px] border-[1.5px] border-[#E2E8F0] focus:border-[#1565C0]"
-            />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Email Address"
+            type="email"
+            placeholder="admin@school.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-            <Input
-              label="Password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="h-[48px] rounded-[10px] border-[1.5px] border-[#E2E8F0] focus:border-[#1565C0]"
-            />
-          </div>
+          <Input
+            label="Password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
           {error && (
-            <div className="text-sm font-medium text-brand-red bg-red-50 p-3 rounded-lg border border-red-100 animate-in fade-in slide-in-from-top-1">
+            <div className="text-sm font-medium text-danger bg-danger/10 p-3 rounded-lg border border-danger/20 animate-in fade-in slide-in-from-top-1">
               {error}
             </div>
           )}
 
           <Button
             type="submit"
-            className="w-full h-[48px] rounded-[10px] text-[15px] font-semibold"
-            style={{ background: 'linear-gradient(135deg, #0D2137 0%, #1B3A5C 100%)' }}
+            className="w-full"
             isLoading={isLoading}
           >
             {isLoading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
 
-        <div className="text-center space-y-[20px]">
+        <div className="text-center mt-6 space-y-6">
           <Link
             to="/forgot-password"
-            className="block text-sm font-medium text-brand-blue hover:underline"
+            className="block text-sm font-medium text-ink-secondary hover:text-ink-primary transition-colors"
           >
             Forgot password?
           </Link>
 
-          {/* Demo Credentials Helper */}
-          <div className="mt-8 p-3 px-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[10px] text-left">
-            <p className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-wider mb-2">Demo Credentials</p>
-            <div className="space-y-1">
+          {/* Demo Credentials Card */}
+          <div className="p-4 bg-white/[0.03] border border-white/[0.06] rounded-[10px] text-left">
+            <p className="text-[11px] font-medium text-[#64748B] uppercase tracking-wider mb-2">Demo Credentials</p>
+            <div className="space-y-1.5">
               <div className="flex justify-between text-[12px]">
-                <span className="text-[#64748B]">Bursar:</span>
-                <span className="text-[#0F172A] font-medium">bursar@yomfield.sch.ng</span>
+                <span className="text-ink-muted">Bursar:</span>
+                <span className="text-ink-secondary font-medium">bursar@yomfield.sch.ng</span>
               </div>
               <div className="flex justify-between text-[12px]">
-                <span className="text-[#64748B]">Proprietor:</span>
-                <span className="text-[#0F172A] font-medium">proprietor@yomfield.sch.ng</span>
+                <span className="text-ink-muted">Proprietor:</span>
+                <span className="text-ink-secondary font-medium">proprietor@yomfield.sch.ng</span>
               </div>
-              <div className="flex justify-between text-[12px] pt-1 border-t border-[#E2E8F0] mt-1">
-                <span className="text-[#64748B]">Password:</span>
-                <span className="text-[#0F172A] font-medium">Demo1234!</span>
+              <div className="flex justify-between text-[12px] pt-1.5 border-t border-white/[0.06] mt-1.5">
+                <span className="text-ink-muted">Password:</span>
+                <span className="text-ink-secondary font-medium">Demo1234!</span>
               </div>
             </div>
           </div>
 
-          <div className="pt-6 border-t border-surface-border">
-            <p className="text-sm text-text-secondary">
+          <div className="pt-6 border-t border-white/[0.06]">
+            <p className="text-sm text-ink-secondary">
               Are you a parent?{' '}
-              <Link to="/parent/login" className="font-bold text-navy hover:underline">
+              <Link to="/parent/login" className="font-bold text-emerald hover:underline">
                 Login here
               </Link>
             </p>

@@ -14,15 +14,15 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputType = isPassword ? (showPassword ? 'text' : 'password') : type
 
     return (
-      <div className="w-full space-y-1.5">
+      <div className="w-full">
         {label && (
-          <label className="text-sm font-medium text-text-primary">
+          <label className="block text-[13px] font-medium text-ink-secondary mb-1.5">
             {label}
           </label>
         )}
         <div className="relative">
           {icon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-disabled">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted">
               {icon}
             </div>
           )}
@@ -30,13 +30,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             type={inputType}
             className={`
-              w-full h-11 px-3 bg-white border rounded-lg text-sm transition-all outline-none
-              placeholder:text-text-disabled
+              w-full h-[44px] px-3.5 bg-white/[0.03] border rounded-[10px] text-sm text-ink-primary transition-all outline-none
+              placeholder:text-ink-muted
               ${icon ? 'pl-10' : ''}
               ${isPassword ? 'pr-10' : ''}
               ${error
-                ? 'border-brand-red focus:ring-1 focus:ring-brand-red'
-                : 'border-surface-border focus:border-navy focus:ring-1 focus:ring-navy'}
+                ? 'border-danger/50 shadow-[0_0_0_3px_rgba(239,68,68,0.08)]'
+                : 'border-white/8 focus:border-emerald/50 focus:shadow-[0_0_0_3px_rgba(16,185,129,0.08)] focus:bg-white/5'}
               ${className}
             `}
             {...props}
@@ -45,13 +45,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-disabled hover:text-text-secondary"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink-secondary transition-colors"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           )}
         </div>
-        {error && <p className="text-xs text-brand-red">{error}</p>}
+        {error && <p className="text-xs text-danger mt-1.5">{error}</p>}
       </div>
     )
   }

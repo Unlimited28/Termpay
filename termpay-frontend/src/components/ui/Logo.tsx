@@ -1,16 +1,19 @@
 interface LogoProps {
-  variant?: 'dark' | 'white'
+  variant?: 'dark' | 'light'
   className?: string
+  showDot?: boolean
 }
 
-const Logo = ({ variant = 'dark', className = '' }: LogoProps) => {
-  const isWhite = variant === 'white'
-
+const Logo = ({ className = '', showDot = false }: LogoProps) => {
   return (
-    <div className={`flex items-center gap-1.5 font-bold text-xl tracking-tight ${className}`}>
-      <span className={isWhite ? 'text-white' : 'text-navy'}>Term</span>
-      <span style={{ color: '#4CAF50' }}>Pay</span>
-      <div className="w-1.5 h-1.5 rounded-full mt-1" style={{ backgroundColor: '#4CAF50' }} />
+    <div className={`flex items-center gap-2 font-bold text-xl tracking-tighter ${className}`}>
+      <div className="flex items-center">
+        <span className="text-ink-primary">Term</span>
+        <span className="text-emerald">Pay</span>
+      </div>
+      {showDot && (
+        <div className="w-2 h-2 rounded-full bg-emerald animate-glow-pulse" />
+      )}
     </div>
   )
 }
