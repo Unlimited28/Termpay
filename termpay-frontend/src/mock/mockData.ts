@@ -12,6 +12,15 @@ export const mockUser: AdminUser = {
   schoolName: 'Yomfield Nursery & Primary School'
 }
 
+export const mockProprietor: AdminUser = {
+  id: '2',
+  email: 'proprietor@yomfield.sch.ng',
+  fullName: 'Dr. Yomi Adeyinka',
+  role: 'proprietor',
+  schoolId: 'school-1',
+  schoolName: 'Yomfield Nursery & Primary School'
+}
+
 export const mockSchool: School = {
   id: 'school-1',
   name: 'Yomfield Nursery & Primary School',
