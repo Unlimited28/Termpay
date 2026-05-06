@@ -6,6 +6,11 @@ import {
   Search,
   Trash2,
   Loader2,
+  LayoutList,
+  AlertCircle,
+  XCircle,
+  CheckCircle2,
+  Zap
 } from 'lucide-react'
 import { AdminLayout } from '../../layouts'
 import {
@@ -84,43 +89,68 @@ const BankStatementReviewPage = () => {
       />
 
       {/* Summary Stats */}
-      <div className="flex flex-wrap gap-3 mb-8">
-        <div className="px-4 py-2 bg-blue-50 text-brand-blue rounded-full text-sm font-bold border border-blue-100">
-          {transactions.length} Total
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-[#EBF8FF] p-[16px] px-[20px] rounded-xl flex flex-col">
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-[24px] font-bold text-[#2B6CB0] leading-none">{transactions.length}</span>
+            <LayoutList size={20} className="text-[#2B6CB0]" />
+          </div>
+          <span className="text-[12px] font-medium text-[#2B6CB0]">Total Transactions</span>
         </div>
-        <div className="px-4 py-2 bg-green-50 text-brand-green rounded-full text-sm font-bold border border-green-100">
-          {transactions.filter(t => t.confidence === 'HIGH' || t.confidence === 'MEDIUM').length} Auto-Matched
+        <div className="bg-[#F0FFF4] p-[16px] px-[20px] rounded-xl flex flex-col">
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-[24px] font-bold text-[#2F855A] leading-none">{transactions.filter(t => t.confidence === 'HIGH' || t.confidence === 'MEDIUM').length}</span>
+            <CheckCircle2 size={20} className="text-[#2F855A]" />
+          </div>
+          <span className="text-[12px] font-medium text-[#2F855A]">Auto-Matched</span>
         </div>
-        <div className="px-4 py-2 bg-amber-50 text-brand-amber rounded-full text-sm font-bold border border-amber-100">
-          {transactions.filter(t => t.confidence === 'NEEDS_REVIEW').length} Needs Review
+        <div className="bg-[#FFFBEB] p-[16px] px-[20px] rounded-xl flex flex-col">
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-[24px] font-bold text-[#B7791F] leading-none">{transactions.filter(t => t.confidence === 'NEEDS_REVIEW').length}</span>
+            <AlertCircle size={20} className="text-[#B7791F]" />
+          </div>
+          <span className="text-[12px] font-medium text-[#B7791F]">Needs Review</span>
         </div>
-        <div className="px-4 py-2 bg-red-50 text-brand-red rounded-full text-sm font-bold border border-red-100">
-          {transactions.filter(t => t.confidence === 'UNMATCHED').length} Unmatched
+        <div className="bg-[#FFF5F5] p-[16px] px-[20px] rounded-xl flex flex-col">
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-[24px] font-bold text-[#C53030] leading-none">{transactions.filter(t => t.confidence === 'UNMATCHED').length}</span>
+            <XCircle size={20} className="text-[#C53030]" />
+          </div>
+          <span className="text-[12px] font-medium text-[#C53030]">Unmatched</span>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-surface-border mb-6">
+      <div className="flex border-b border-[#E2E8F0] mb-6 h-[44px]">
         <button
           onClick={() => setActiveTab('auto')}
-          className={`px-6 py-3 text-sm font-medium transition-colors relative ${activeTab === 'auto' ? 'text-navy' : 'text-text-secondary hover:text-text-primary'}`}
+          className={`px-6 h-full flex items-center gap-2 text-sm font-medium transition-colors relative ${activeTab === 'auto' ? 'text-[#0D2137]' : 'text-[#64748B] hover:text-[#0F172A]'}`}
         >
-          Auto-Matched ({autoMatched.length})
-          {activeTab === 'auto' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-navy" />}
+          Auto-Matched
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === 'auto' ? 'bg-[#0D2137] text-white' : 'bg-[#E2E8F0] text-[#64748B]'}`}>
+            {autoMatched.length}
+          </span>
+          {activeTab === 'auto' && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0D2137]" />}
         </button>
         <button
           onClick={() => setActiveTab('review')}
-          className={`px-6 py-3 text-sm font-medium transition-colors relative ${activeTab === 'review' ? 'text-navy' : 'text-text-secondary hover:text-text-primary'}`}
+          className={`px-6 h-full flex items-center gap-2 text-sm font-medium transition-colors relative ${activeTab === 'review' ? 'text-[#0D2137]' : 'text-[#64748B] hover:text-[#0F172A]'}`}
         >
-          Needs Review ({needsReview.length})
-          {activeTab === 'review' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-navy" />}
+          Needs Review
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === 'review' ? 'bg-[#0D2137] text-white' : 'bg-[#E2E8F0] text-[#64748B]'}`}>
+            {needsReview.length}
+          </span>
+          {activeTab === 'review' && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0D2137]" />}
         </button>
         <button
           onClick={() => setActiveTab('unmatched')}
-          className={`px-6 py-3 text-sm font-medium transition-colors relative ${activeTab === 'unmatched' ? 'text-navy' : 'text-text-secondary hover:text-text-primary'}`}
+          className={`px-6 h-full flex items-center gap-2 text-sm font-medium transition-colors relative ${activeTab === 'unmatched' ? 'text-[#0D2137]' : 'text-[#64748B] hover:text-[#0F172A]'}`}
         >
-          Unmatched ({unmatched.length})
-          {activeTab === 'unmatched' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-navy" />}
+          Unmatched
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === 'unmatched' ? 'bg-[#0D2137] text-white' : 'bg-[#E2E8F0] text-[#64748B]'}`}>
+            {unmatched.length}
+          </span>
+          {activeTab === 'unmatched' && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0D2137]" />}
         </button>
       </div>
 
@@ -164,51 +194,80 @@ const BankStatementReviewPage = () => {
             <>
               {autoMatched.length > 0 ? (
                 <>
-                  <div className="px-6 py-4 border-b border-surface-border flex items-center justify-between bg-slate-50/50">
-                    <div className="flex items-center gap-2 text-sm text-text-secondary">
+                  <div className="px-6 py-4 border-b border-[#E2E8F0] flex items-center justify-between bg-slate-50/30">
+                    <div className="flex items-center gap-2 text-[13px] text-[#64748B]">
                       <HelpCircle size={16} />
                       Verify these matches before confirming
                     </div>
                     {highConfidenceCount > 0 && (
-                      <Button size="sm" onClick={handleConfirmAllHigh}>
-                        <CheckCircle size={16} className="mr-2" />
-                        Confirm {highConfidenceCount} HIGH matches
+                      <Button
+                        size="md"
+                        onClick={handleConfirmAllHigh}
+                        className="h-[44px] px-[24px] rounded-lg font-semibold"
+                        style={{ background: 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)' }}
+                      >
+                        <Zap size={18} className="mr-2" />
+                        Confirm {highConfidenceCount} HIGH ✓
+                        <span className="ml-2 bg-white text-[#2E7D32] px-1.5 py-0.5 rounded text-[10px]">{highConfidenceCount}</span>
                       </Button>
                     )}
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left">
                       <thead>
-                        <tr className="bg-slate-50 text-xs text-text-secondary font-semibold uppercase tracking-wider">
+                        <tr>
                           <th className="px-6 py-4">Date</th>
                           <th className="px-6 py-4">Sender Name</th>
                           <th className="px-6 py-4 text-right">Amount</th>
                           <th className="px-6 py-4">Matched Student</th>
-                          <th className="px-6 py-4">Class</th>
-                          <th className="px-6 py-4">Confidence</th>
                           <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-surface-border">
+                      <tbody>
                         {autoMatched.map((t) => (
-                          <tr key={t.id} className={`text-sm hover:bg-slate-50 transition-colors border-l-4 ${t.confidence === 'HIGH' ? 'border-l-brand-green' : 'border-l-brand-amber'}`}>
-                            <td className="px-6 py-4 text-text-secondary whitespace-nowrap">{t.date}</td>
-                            <td className="px-6 py-4 font-medium text-text-primary">{t.senderName}</td>
-                            <td className="px-6 py-4 text-right font-bold text-text-primary">₦{t.amount.toLocaleString()}</td>
-                            <td className="px-6 py-4 font-bold text-brand-blue">{t.matchedStudent}</td>
-                            <td className="px-6 py-4 text-text-secondary">{t.matchedClass}</td>
+                          <tr
+                            key={t.id}
+                            className={`group transition-colors border-l-[4px] ${
+                              t.confidence === 'HIGH'
+                                ? 'border-l-[#2E7D32] bg-[#2E7D32]/[0.02]'
+                                : 'border-l-[#E65100] bg-[#E65100]/[0.02]'
+                            }`}
+                          >
+                            <td className="px-6 py-4 text-[#64748B] whitespace-nowrap">{t.date}</td>
                             <td className="px-6 py-4">
-                              <Badge variant={t.confidence === 'HIGH' ? 'success' : 'warning'}>
-                                {t.confidence}
-                              </Badge>
+                              <div className="flex flex-col">
+                                <span className="font-medium text-[#0F172A]">{t.senderName}</span>
+                                <Badge
+                                  variant={t.confidence === 'HIGH' ? 'success' : 'warning'}
+                                  className={`w-fit mt-1 text-[10px] border-none ${t.confidence === 'HIGH' ? '!bg-[#2E7D32] text-white' : '!bg-[#E65100] text-white'}`}
+                                >
+                                  {t.confidence}
+                                </Badge>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-right font-bold text-[#0F172A]">₦{t.amount.toLocaleString()}</td>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-[#1565C0]">{t.matchedStudent}</span>
+                                <span className="text-[12px] text-[#94A3B8]">{t.matchedClass}</span>
+                              </div>
                             </td>
                             <td className="px-6 py-4 text-right">
                               <div className="flex justify-end gap-2">
-                                <Button size="sm" variant="secondary" className="text-brand-green border-green-200 bg-green-50 hover:bg-green-100" onClick={() => handleConfirm(t.id)}>
-                                  Confirm
+                                <Button
+                                  size="sm"
+                                  className="h-[32px] text-[10px] font-bold bg-[#2E7D32] hover:bg-[#1B5E20] text-white"
+                                  onClick={() => handleConfirm(t.id)}
+                                >
+                                  CONFIRM
                                 </Button>
-                                <Button size="sm" variant="ghost" onClick={() => handleOverride()}>
-                                  Override
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-[32px] text-[10px] font-bold text-[#64748B]"
+                                  onClick={() => handleOverride()}
+                                >
+                                  OVERRIDE
                                 </Button>
                               </div>
                             </td>

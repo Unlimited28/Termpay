@@ -93,3 +93,8 @@ export const mockTransactions: BankTransaction[] = [
   { id: 't8', senderName: 'JOHNSON WILLIAMS', amount: 85000, date: '2026-03-18', narration: 'Payment', confidence: 'NEEDS_REVIEW', matchedStudent: undefined, matchedClass: undefined, isConfirmed: false },
   { id: 't9', senderName: 'UNKNOWN SENDER XYZ', amount: 10000, date: '2026-03-19', narration: 'Transfer', confidence: 'UNMATCHED', matchedStudent: undefined, matchedClass: undefined, isConfirmed: false },
 ]
+
+export const mockExtraFeeItems = [
+  { id: 'ef1', name: 'Excursion Fee', amount: 15000, appliesTo: ['Primary 3'], compulsory: true, addedBy: 'Mrs. Folake Adeyemi' },
+  { id: 'ef2', name: 'Computer Levy', amount: 8000, appliesTo: ['All Classes'], compulsory: false, addedBy: 'Mrs. Folake Adeyemi' },
+]

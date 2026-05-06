@@ -7,9 +7,10 @@ import {
   CreditCard,
   LogOut,
   Menu,
-  ChevronRight
+  ChevronRight,
+  GraduationCap
 } from 'lucide-react'
-import { Logo, Badge, Toast } from '../components/ui'
+import { Toast } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { mockUser, mockTerm } from '../mock/mockData'
 
@@ -26,6 +27,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, exact: true },
     { label: 'Students', path: '/students', icon: Users },
+    { label: 'Fee Structure', path: '/fee-structure', icon: GraduationCap },
     { label: 'Bank Statements', path: '/bank-statements', icon: Upload },
     { label: 'Payments', path: '/payments', icon: CreditCard },
   ]
@@ -39,6 +41,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     const currentPath = location.pathname
     if (currentPath === '/dashboard') return 'Dashboard'
     if (currentPath.startsWith('/students')) return 'Students'
+    if (currentPath.startsWith('/fee-structure')) return 'Fee Structure'
     if (currentPath.startsWith('/bank-statements')) return 'Bank Statements'
     if (currentPath.startsWith('/payments')) return 'Payments'
     return 'TermPay'
@@ -68,24 +71,30 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       )}
 
       {/* Sidebar */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-navy text-white flex flex-col transition-transform duration-250 ease-spring
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        md:translate-x-0
-      `}>
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 w-64 text-white flex flex-col transition-transform duration-250 ease-spring
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          md:translate-x-0
+        `}
+        style={{ background: 'linear-gradient(180deg, #0D2137 0%, #0A1929 100%)' }}
+      >
         {/* Sidebar Header */}
-        <div className="p-6 border-b border-white/10">
-          <Logo variant="white" />
-          <div className="mt-4">
-            <p className="text-xs text-slate-400 font-medium truncate">{mockUser.schoolName}</p>
-            <Badge variant="info" className="mt-2 bg-blue-900/50 text-blue-200 border-none px-2 py-0.5">
+        <div className="p-6">
+          <div className="flex items-center gap-1.5 font-bold text-[20px] tracking-tight">
+            <span className="text-white">Term</span>
+            <span style={{ color: '#4CAF50' }}>Pay</span>
+          </div>
+          <div className="mt-2 flex flex-col gap-2">
+            <p className="text-[11px] text-[#94A3B8] font-medium truncate">{mockUser.schoolName}</p>
+            <div className="inline-flex items-center w-fit bg-[#63B3ED]/15 text-[#63B3ED] border border-[#63B3ED]/20 rounded-full px-2 py-0.5 text-[10px] font-medium">
               {mockTerm.name} {mockTerm.session}
-            </Badge>
+            </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-4 py-2 space-y-[6px] overflow-y-auto">
           {navItems.map((item) => {
             const active = isActive(item)
             return (
@@ -94,13 +103,13 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                 to={item.path}
                 onClick={() => setIsSidebarOpen(false)}
                 className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150
+                  flex items-center gap-3 px-3 h-[48px] rounded-lg text-sm transition-colors duration-150 nav-item-active-border
                   ${active
-                    ? 'bg-blue-900/40 text-white font-medium'
+                    ? 'active bg-white/10 text-white font-medium !rounded-l-none'
                     : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}
                 `}
               >
-                <item.icon size={20} />
+                <item.icon size={18} />
                 <span>{item.label}</span>
                 {active && <ChevronRight size={14} className="ml-auto opacity-50" />}
               </NavLink>
@@ -109,14 +118,17 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-4 border-t border-white/10 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-brand-blue flex items-center justify-center text-xs font-bold text-white ring-2 ring-white/10">
+        <div className="p-4 border-t border-white/10 mt-auto">
+          <div className="flex items-center gap-3 mb-4">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white"
+              style={{ background: 'linear-gradient(135deg, #1565C0 0%, #0D2137 100%)' }}
+            >
               {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.fullName || mockUser.fullName}</p>
-              <p className="text-xs text-slate-400 capitalize">{user?.role || mockUser.role}</p>
+              <p className="text-[13px] font-medium text-white truncate">{user?.fullName || mockUser.fullName}</p>
+              <p className="text-[11px] text-[#64748B] capitalize">{user?.role || mockUser.role}</p>
             </div>
           </div>
           <button
@@ -132,7 +144,10 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col md:ml-64">
         {/* TopBar */}
-        <header className="h-14 bg-white border-b border-surface-border sticky top-0 z-30 px-4 md:px-8 flex items-center justify-between">
+        <header
+          className="h-16 bg-white border-b border-[#E2E8F0] sticky top-0 z-30 px-4 md:px-8 flex items-center justify-between"
+          style={{ boxShadow: '0 1px 0 #E2E8F0' }}
+        >
           <div className="flex items-center gap-4">
             <button
               className="md:hidden p-1.5 rounded-lg hover:bg-surface-bg text-text-secondary"
@@ -140,11 +155,11 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             >
               <Menu size={20} />
             </button>
-            <h2 className="text-lg font-semibold text-text-primary">{getPageTitle()}</h2>
+            <h1 className="text-[16px] font-semibold text-[#0F172A]">{getPageTitle()}</h1>
           </div>
 
-          <div className="hidden md:flex items-center gap-2 text-sm text-text-secondary">
-            <span className="w-2 h-2 rounded-full bg-brand-green" />
+          <div className="hidden md:flex items-center gap-2 text-[13px] text-[#64748B]">
+            <span className="w-[6px] h-[6px] rounded-full bg-[#4CAF50]" />
             {mockUser.schoolName}
           </div>
         </header>

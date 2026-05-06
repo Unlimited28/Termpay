@@ -10,6 +10,24 @@ const ParentDashboardPage = () => {
   const student = mockStudents[0]
   const payments = mockRecentPayments.filter(p => p.studentId === student.id)
 
+  const getStatusColor = () => {
+    if (student.status === 'paid') return '#2E7D32'
+    if (student.status === 'partial') return '#E65100'
+    return '#B71C1C'
+  }
+
+  const getStatusBg = () => {
+    if (student.status === 'paid') return 'bg-green-50'
+    if (student.status === 'partial') return 'bg-amber-50'
+    return 'bg-red-50'
+  }
+
+  const getStatusText = () => {
+    if (student.status === 'paid') return 'text-brand-green'
+    if (student.status === 'partial') return 'text-brand-amber'
+    return 'text-brand-red'
+  }
+
   const handleDownload = (receiptNo: string) => {
     toast.info(`Downloading receipt ${receiptNo}...`)
   }
@@ -25,28 +43,37 @@ const ParentDashboardPage = () => {
     <ParentLayout>
       <div className="space-y-6">
         {/* Child Header Card */}
-        <div className="bg-white rounded-2xl border border-surface-border p-6 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-navy flex items-center justify-center text-white text-xl font-bold">
-              {student.fullName.split(' ').map(n => n[0]).join('')}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-text-primary">{student.fullName}</h1>
-              <p className="text-text-secondary font-medium">
-                {student.className} • {mockTerm.name} {mockTerm.session}
-              </p>
-            </div>
+        <div
+          className="rounded-2xl p-6 shadow-sm flex items-center gap-4 bg-white"
+          style={{ borderTop: `4px solid ${getStatusColor()}` }}
+        >
+          <div className={`w-[48px] h-[48px] rounded-full flex items-center justify-center text-lg font-bold ${getStatusBg()} ${getStatusText()}`}>
+            {student.fullName.split(' ').map(n => n[0]).join('')}
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-[#0F172A]">{student.fullName}</h1>
+            <p className="text-[#64748B] font-medium text-sm">
+              {student.className} • {mockTerm.name} {mockTerm.session}
+            </p>
           </div>
         </div>
 
         {/* Status Card */}
-        <div className="bg-white rounded-2xl border border-surface-border p-8 shadow-sm text-center animate-in zoom-in-95 duration-300">
-          <div className="flex flex-col items-center">
-            <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mb-6 text-brand-green ring-8 ring-green-50/50">
-              <CheckCircle size={40} />
+        <div
+          className="bg-white rounded-2xl border border-[rgba(46,125,50,0.2)] p-12 shadow-sm text-center animate-in zoom-in-95 duration-300 relative overflow-hidden"
+        >
+          {/* Subtle green radial gradient behind icon */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] pointer-events-none opacity-20"
+            style={{ background: 'radial-gradient(circle, rgba(46,125,50,0.4) 0%, transparent 70%)' }}
+          />
+
+          <div className="flex flex-col items-center relative z-10">
+            <div className="text-[#2E7D32] mb-6 drop-shadow-sm">
+              <CheckCircle size={64} />
             </div>
-            <h2 className="text-3xl font-black text-text-primary mb-2">FULLY PAID ✓</h2>
-            <p className="text-text-secondary font-medium max-w-xs mx-auto">
+            <h2 className="text-[28px] font-900 font-black text-[#0F172A] mb-2 tracking-tight">FULLY PAID ✓</h2>
+            <p className="text-[#64748B] font-medium max-w-xs mx-auto">
               Your fees for this term have been fully settled. Thank you!
             </p>
           </div>
@@ -70,17 +97,17 @@ const ParentDashboardPage = () => {
                       <td className="px-6 py-3 text-text-primary text-right font-medium">₦{item.amount.toLocaleString()}</td>
                     </tr>
                   ))}
-                  <tr className="bg-slate-50/50">
+                  <tr className="border-t-[2px] border-surface-border">
                     <td className="px-6 py-4 font-bold text-text-primary">Total Amount</td>
-                    <td className="px-6 py-4 font-black text-text-primary text-right">₦{student.totalBill.toLocaleString()}</td>
+                    <td className="px-6 py-4 font-bold text-text-primary text-right text-[16px]">₦{student.totalBill.toLocaleString()}</td>
                   </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-bold text-brand-green">Amount Paid</td>
-                    <td className="px-6 py-4 font-black text-brand-green text-right">₦{student.amountPaid.toLocaleString()}</td>
+                  <tr className="bg-[#2E7D32]/[0.05]">
+                    <td className="px-6 py-4 font-bold text-[#2E7D32]">Amount Paid</td>
+                    <td className="px-6 py-4 font-bold text-[#2E7D32] text-right">₦{student.amountPaid.toLocaleString()}</td>
                   </tr>
-                  <tr className="bg-green-50/30">
-                    <td className="px-6 py-4 font-bold text-brand-green">Balance</td>
-                    <td className="px-6 py-4 font-black text-brand-green text-right italic">Fully Settled</td>
+                  <tr className="bg-[#2E7D32]/[0.05]">
+                    <td className="px-6 py-4 font-bold text-[#2E7D32]">Balance</td>
+                    <td className="px-6 py-4 font-bold text-[#2E7D32] text-right italic">Fully Settled</td>
                   </tr>
                 </tbody>
               </table>
