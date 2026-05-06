@@ -86,6 +86,25 @@ const LoginPage = () => {
             Forgot password?
           </Link>
 
+          {/* Demo Credentials Helper */}
+          <div className="mt-8 p-3 px-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[10px] text-left">
+            <p className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-wider mb-2">Demo Credentials</p>
+            <div className="space-y-1">
+              <div className="flex justify-between text-[12px]">
+                <span className="text-[#64748B]">Bursar:</span>
+                <span className="text-[#0F172A] font-medium">bursar@yomfield.sch.ng</span>
+              </div>
+              <div className="flex justify-between text-[12px]">
+                <span className="text-[#64748B]">Proprietor:</span>
+                <span className="text-[#0F172A] font-medium">proprietor@yomfield.sch.ng</span>
+              </div>
+              <div className="flex justify-between text-[12px] pt-1 border-t border-[#E2E8F0] mt-1">
+                <span className="text-[#64748B]">Password:</span>
+                <span className="text-[#0F172A] font-medium">Demo1234!</span>
+              </div>
+            </div>
+          </div>
+
           <div className="pt-6 border-t border-surface-border">
             <p className="text-sm text-text-secondary">
               Are you a parent?{' '}

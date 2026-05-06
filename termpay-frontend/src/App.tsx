@@ -10,6 +10,7 @@ import BankStatementsPage from './pages/admin/BankStatementsPage'
 import BankStatementReviewPage from './pages/admin/BankStatementReviewPage'
 import FeeStructurePage from './pages/admin/FeeStructurePage'
 import PaymentsPage from './pages/admin/PaymentsPage'
+import ReportsPage from './pages/admin/ReportsPage'
 import ParentLoginPage from './pages/parent/ParentLoginPage'
 import ParentDashboardPage from './pages/parent/ParentDashboardPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
@@ -57,6 +58,9 @@ export default function App() {
             } />
             <Route path="/payments" element={
               <ProtectedRoute><PaymentsPage /></ProtectedRoute>
+            } />
+            <Route path="/reports" element={
+              <ProtectedRoute><ReportsPage /></ProtectedRoute>
             } />
             <Route path="/" element={<Navigate to="/login" replace />} />
             </Routes>

@@ -8,7 +8,8 @@ import {
   LogOut,
   Menu,
   ChevronRight,
-  GraduationCap
+  GraduationCap,
+  BarChart2
 } from 'lucide-react'
 import { Toast } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
@@ -28,9 +29,17 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, exact: true },
     { label: 'Students', path: '/students', icon: Users },
     { label: 'Fee Structure', path: '/fee-structure', icon: GraduationCap },
-    { label: 'Bank Statements', path: '/bank-statements', icon: Upload },
-    { label: 'Payments', path: '/payments', icon: CreditCard },
   ]
+
+  if (user?.role === 'proprietor') {
+    navItems.push({ label: 'Reports', path: '/reports', icon: BarChart2 })
+  } else {
+    // Bursar sees operational items
+    navItems.push(
+      { label: 'Bank Statements', path: '/bank-statements', icon: Upload },
+      { label: 'Payments', path: '/payments', icon: CreditCard }
+    )
+  }
 
   const handleLogout = () => {
     logout()
@@ -44,6 +53,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     if (currentPath.startsWith('/fee-structure')) return 'Fee Structure'
     if (currentPath.startsWith('/bank-statements')) return 'Bank Statements'
     if (currentPath.startsWith('/payments')) return 'Payments'
+    if (currentPath.startsWith('/reports')) return 'Reports'
     return 'TermPay'
   }
 
@@ -86,7 +96,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             <span style={{ color: '#4CAF50' }}>Pay</span>
           </div>
           <div className="mt-2 flex flex-col gap-2">
-            <p className="text-[11px] text-[#94A3B8] font-medium truncate">{mockUser.schoolName}</p>
+            <p className="text-[11px] text-[#94A3B8] font-medium truncate">{user?.schoolName || mockUser.schoolName}</p>
             <div className="inline-flex items-center w-fit bg-[#63B3ED]/15 text-[#63B3ED] border border-[#63B3ED]/20 rounded-full px-2 py-0.5 text-[10px] font-medium">
               {mockTerm.name} {mockTerm.session}
             </div>
@@ -160,7 +170,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
 
           <div className="hidden md:flex items-center gap-2 text-[13px] text-[#64748B]">
             <span className="w-[6px] h-[6px] rounded-full bg-[#4CAF50]" />
-            {mockUser.schoolName}
+            {user?.schoolName || mockUser.schoolName}
           </div>
         </header>
 

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CloudUpload,
@@ -7,11 +7,24 @@ import {
 } from 'lucide-react'
 import { AdminLayout } from '../../layouts'
 import { Card, Button, Badge } from '../../components/ui'
+import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import { mockStatementUploads } from '../../mock/mockData'
 
 const BankStatementsPage = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const { toast } = useToast()
   const [isUploading, setIsUploading] = useState(false)
+
+  useEffect(() => {
+    if (user?.role === 'proprietor') {
+      toast.info('Bank statement management is handled by your Bursar.')
+      navigate('/dashboard', { replace: true })
+    }
+  }, [user, navigate, toast])
+
+  if (user?.role === 'proprietor') return null
   const [uploadStep, setUploadStep] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 

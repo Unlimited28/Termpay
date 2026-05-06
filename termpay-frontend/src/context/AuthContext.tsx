@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import type { AdminUser } from '../types'
-import { mockUser } from '../mock/mockData'
+import { mockUser, mockProprietor } from '../mock/mockData'
 
 interface AuthContextType {
   user: AdminUser | null
@@ -18,6 +18,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await new Promise(resolve => setTimeout(resolve, 1000))
     if (email === 'bursar@yomfield.sch.ng' && password === 'Demo1234!') {
       setUser(mockUser)
+      return true
+    }
+    if (email === 'proprietor@yomfield.sch.ng' && password === 'Demo1234!') {
+      setUser(mockProprietor)
       return true
     }
     return false

@@ -238,17 +238,12 @@ const FeeStructurePage = () => {
                     <td className="px-6 py-4 text-[#64748B]">{fee.addedBy}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1.5 rounded-lg hover:bg-slate-100 text-[#64748B] hover:text-[#0F172A]">
-                          <Pencil size={16} />
-                        </button>
-                        {isProprietor && (
-                          <button
-                            className="p-1.5 rounded-lg hover:bg-red-50 text-[#64748B] hover:text-brand-red"
-                            onClick={() => handleDeleteFee(fee.id)}
-                          >
-                            <Trash2 size={16} />
+                        {!isProprietor && (
+                          <button className="p-1.5 rounded-lg hover:bg-slate-100 text-[#64748B] hover:text-[#0F172A]">
+                            <Pencil size={16} />
                           </button>
                         )}
+                        {/* Delete button hidden for all roles as specified */}
                       </div>
                     </td>
                   </tr>
@@ -274,12 +269,14 @@ const FeeStructurePage = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-[24px] font-800 text-[#0F172A]">₦{total.toLocaleString()}</div>
-                  <button
-                    className="text-[13px] font-semibold text-[#1565C0] hover:underline"
-                    onClick={() => setEditingClass(isEditing ? null : cls.id)}
-                  >
-                    {isEditing ? 'Cancel' : 'Edit Fees'}
-                  </button>
+                  {!isProprietor && (
+                    <button
+                      className="text-[13px] font-semibold text-[#1565C0] hover:underline"
+                      onClick={() => setEditingClass(isEditing ? null : cls.id)}
+                    >
+                      {isEditing ? 'Cancel' : 'Edit Fees'}
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="flex-1">

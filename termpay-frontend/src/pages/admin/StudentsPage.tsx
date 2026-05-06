@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Plus,
   Search,
@@ -9,7 +9,8 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  Check
+  Check,
+  AlertCircle
 } from 'lucide-react'
 import { AdminLayout } from '../../layouts'
 import {
@@ -22,19 +23,32 @@ import {
   EmptyState
 } from '../../components/ui'
 import { useToast } from '../../context/ToastContext'
+import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
 import { mockClasses } from '../../mock/mockData'
 import { type Student } from '../../types'
 
 const StudentsPage = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { toast } = useToast()
+  const { user } = useAuth()
   const { students, addStudent } = useData()
+
+  const isProprietor = user?.role === 'proprietor'
 
   // State for filtering
   const [searchTerm, setSearchTerm] = useState('')
   const [classFilter, setClassFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+
+  // Handle URL parameters
+  useEffect(() => {
+    const status = searchParams.get('status')
+    if (status && ['paid', 'partial', 'unpaid'].includes(status)) {
+      setStatusFilter(status)
+    }
+  }, [searchParams])
 
   // State for Modal
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -149,6 +163,13 @@ const StudentsPage = () => {
 
   return (
     <AdminLayout>
+      {isProprietor && (
+        <div className="mb-6 flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl text-blue-700">
+          <AlertCircle size={18} />
+          <p className="text-[14px] font-medium">You are viewing as Proprietor — contact your Bursar to make changes.</p>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-[28px] font-bold text-[#0F172A] tracking-tight">Students</h1>
@@ -159,14 +180,16 @@ const StudentsPage = () => {
             <Download size={18} className="mr-2" />
             Export
           </Button>
-          <Button
-            onClick={() => setIsModalOpen(true)}
-            style={{ background: 'linear-gradient(135deg, #0D2137 0%, #1B3A5C 100%)' }}
-            className="px-6"
-          >
-            <Plus size={18} className="mr-2" />
-            Add Student
-          </Button>
+          {!isProprietor && (
+            <Button
+              onClick={() => setIsModalOpen(true)}
+              style={{ background: 'linear-gradient(135deg, #0D2137 0%, #1B3A5C 100%)' }}
+              className="px-6"
+            >
+              <Plus size={18} className="mr-2" />
+              Add Student
+            </Button>
+          )}
         </div>
       </div>
 
@@ -270,12 +293,14 @@ const StudentsPage = () => {
                         >
                           <Eye size={18} />
                         </button>
-                        <button
-                          onClick={() => handleSendReminder(student)}
-                          className="p-1.5 rounded-lg hover:bg-slate-100 text-text-secondary hover:text-text-primary transition-colors"
-                        >
-                          <MessageSquare size={18} />
-                        </button>
+                        {!isProprietor && (
+                          <button
+                            onClick={() => handleSendReminder(student)}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 text-text-secondary hover:text-text-primary transition-colors"
+                          >
+                            <MessageSquare size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -323,12 +348,14 @@ const StudentsPage = () => {
                     >
                       <Eye size={18} />
                     </button>
-                    <button
-                      onClick={() => handleSendReminder(student)}
-                      className="p-2 bg-slate-50 rounded-lg text-text-secondary"
-                    >
-                      <MessageSquare size={18} />
-                    </button>
+                    {!isProprietor && (
+                      <button
+                        onClick={() => handleSendReminder(student)}
+                        className="p-2 bg-slate-50 rounded-lg text-text-secondary"
+                      >
+                        <MessageSquare size={18} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

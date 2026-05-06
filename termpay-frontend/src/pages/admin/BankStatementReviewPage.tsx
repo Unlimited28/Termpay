@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { useState, useMemo, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
   CheckCircle,
   HelpCircle,
@@ -21,13 +21,25 @@ import {
   Input,
   EmptyState
 } from '../../components/ui'
+import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { mockTransactions, mockStudents } from '../../mock/mockData'
 import { type BankTransaction, type Student } from '../../types'
 
 const BankStatementReviewPage = () => {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { user } = useAuth()
   const { toast } = useToast()
+
+  useEffect(() => {
+    if (user?.role === 'proprietor') {
+      toast.info('Bank statement management is handled by your Bursar.')
+      navigate('/dashboard', { replace: true })
+    }
+  }, [user, navigate, toast])
+
+  if (user?.role === 'proprietor') return null
 
   const [activeTab, setActiveTab] = useState<'auto' | 'review' | 'unmatched'>('auto')
   const [transactions, setTransactions] = useState<BankTransaction[]>(mockTransactions)
