@@ -16,14 +16,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     await new Promise(resolve => setTimeout(resolve, 1000))
+
     if (email === 'bursar@yomfield.sch.ng' && password === 'Demo1234!') {
       setUser(mockUser)
       return true
     }
+
     if (email === 'proprietor@yomfield.sch.ng' && password === 'Demo1234!') {
       setUser(mockProprietor)
       return true
     }
+
     return false
   }
 
