@@ -1,12 +1,28 @@
 import { Router } from 'express'
+import {
+  listStudents,
+  createStudent,
+  getStudent,
+  updateStudent,
+  deleteStudent,
+  getClasses
+} from '../controllers/studentsController'
+import { authMiddleware } from '../middleware/authMiddleware'
+import { requireRole } from '../middleware/roleMiddleware'
+
 const router = Router()
 
-router.all('*', (req, res) => {
-  res.status(501).json({
-    success: false,
-    error: 'Students routes not yet implemented',
-    code: 'NOT_IMPLEMENTED'
-  })
-})
+// All routes require authentication
+router.use(authMiddleware)
+
+// Classes endpoint
+router.get('/classes', getClasses)
+
+// Student CRUD
+router.get('/', listStudents)
+router.post('/', requireRole('proprietor', 'bursar', 'super_admin'), createStudent)
+router.get('/:id', getStudent)
+router.put('/:id', requireRole('proprietor', 'bursar', 'super_admin'), updateStudent)
+router.delete('/:id', requireRole('proprietor', 'super_admin'), deleteStudent)
 
 export default router
