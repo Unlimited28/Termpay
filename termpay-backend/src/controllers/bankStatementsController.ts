@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { supabaseAdmin } from '../config/supabase'
 import { statementParser } from '../services/statementParser'
+import { matchingEngine } from '../services/matchingEngine'
 
 // ─── UPLOAD BANK STATEMENT ────────────────────────────────────────────────────
 export async function uploadStatement(req: Request, res: Response): Promise<void> {
@@ -105,6 +106,268 @@ export async function uploadStatement(req: Request, res: Response): Promise<void
       error: 'Failed to upload and parse bank statement',
       code: 'UPLOAD_ERROR'
     })
+  }
+}
+
+// ─── RUN MATCHING ENGINE ──────────────────────────────────────────────────────
+export async function runMatching(req: Request, res: Response): Promise<void> {
+  try {
+    const schoolId = req.user!.schoolId
+    const { id } = req.params
+
+    // Verify upload belongs to school
+    const { data: upload, error: uploadError } = await supabaseAdmin
+      .from('bank_statement_uploads')
+      .select('id, status, file_name')
+      .eq('id', id)
+      .eq('school_id', schoolId)
+      .single()
+
+    if (uploadError || !upload) {
+      res.status(404).json({
+        success: false,
+        error: 'Upload not found',
+        code: 'UPLOAD_NOT_FOUND'
+      })
+      return
+    }
+
+    // Run matching engine
+    const summary = await matchingEngine.matchTransactions(id, schoolId)
+
+    res.json({
+      success: true,
+      message: `Matching complete. ${summary.high} HIGH, ${summary.medium} MEDIUM, ${summary.needsReview} need review, ${summary.unmatched} unmatched.`,
+      data: summary
+    })
+
+  } catch (error) {
+    console.error('Run matching error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to run matching engine',
+      code: 'MATCHING_ERROR'
+    })
+  }
+}
+
+// ─── CONFIRM SINGLE MATCH ─────────────────────────────────────────────────────
+export async function confirmMatch(req: Request, res: Response): Promise<void> {
+  try {
+    const schoolId = req.user!.schoolId
+    const { id, txId } = req.params
+
+    // Get transaction details
+    const { data: tx, error: txError } = await supabaseAdmin
+      .from('bank_transactions')
+      .select('id, amount, matched_student_id, matched_bill_id, is_matched, school_id')
+      .eq('id', txId)
+      .eq('upload_id', id)
+      .eq('school_id', schoolId)
+      .single()
+
+    if (txError || !tx) {
+      res.status(404).json({
+        success: false,
+        error: 'Transaction not found',
+        code: 'TRANSACTION_NOT_FOUND'
+      })
+      return
+    }
+
+    if (tx.is_matched) {
+      res.status(400).json({
+        success: false,
+        error: 'Transaction already confirmed',
+        code: 'ALREADY_CONFIRMED'
+      })
+      return
+    }
+
+    if (!tx.matched_student_id || !tx.matched_bill_id) {
+      res.status(400).json({
+        success: false,
+        error: 'Transaction has no matched student. Use override first.',
+        code: 'NO_MATCH'
+      })
+      return
+    }
+
+    // Create payment record
+    const paymentResult = await createPaymentRecord(
+      tx,
+      schoolId,
+      req.user!.userId
+    )
+
+    res.status(201).json({
+      success: true,
+      message: 'Payment confirmed successfully',
+      data: paymentResult
+    })
+
+  } catch (error) {
+    console.error('Confirm match error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to confirm match',
+      code: 'CONFIRM_ERROR'
+    })
+  }
+}
+
+// ─── CONFIRM ALL HIGH CONFIDENCE ─────────────────────────────────────────────
+export async function confirmAllHigh(req: Request, res: Response): Promise<void> {
+  try {
+    const schoolId = req.user!.schoolId
+    const { id } = req.params
+
+    // Get all HIGH confidence unconfirmed transactions for this upload
+    const { data: transactions, error } = await supabaseAdmin
+      .from('bank_transactions')
+      .select('id, amount, matched_student_id, matched_bill_id, is_matched')
+      .eq('upload_id', id)
+      .eq('school_id', schoolId)
+      .eq('match_confidence', 'HIGH')
+      .eq('is_matched', false)
+
+    if (error) throw new Error(error.message)
+
+    if (!transactions || transactions.length === 0) {
+      res.json({
+        success: true,
+        message: 'No HIGH confidence transactions to confirm',
+        data: { confirmed: 0, payments: [] }
+      })
+      return
+    }
+
+    const confirmedPayments = []
+    const failedTransactions = []
+
+    for (const tx of transactions) {
+      try {
+        if (!tx.matched_student_id || !tx.matched_bill_id) continue
+
+        const paymentResult = await createPaymentRecord(
+          tx,
+          schoolId,
+          req.user!.userId
+        )
+        confirmedPayments.push(paymentResult)
+      } catch (err) {
+        console.error(`Failed to confirm transaction ${tx.id}:`, err)
+        failedTransactions.push(tx.id)
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `${confirmedPayments.length} payments confirmed successfully`,
+      data: {
+        confirmed: confirmedPayments.length,
+        failed: failedTransactions.length,
+        payments: confirmedPayments
+      }
+    })
+
+  } catch (error) {
+    console.error('Confirm all high error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to confirm payments',
+      code: 'CONFIRM_ALL_ERROR'
+    })
+  }
+}
+
+// ─── CREATE PAYMENT RECORD (shared helper) ────────────────────────────────────
+async function createPaymentRecord(
+  tx: {
+    id: string
+    amount: number
+    matched_student_id: string
+    matched_bill_id: string
+  },
+  schoolId: string,
+  confirmedBy: string
+): Promise<any> {
+
+  // Generate receipt number
+  const today = new Date()
+  const dateStr = today.toISOString().split('T')[0].replace(/-/g, '')
+
+  const { count: todayCount } = await supabaseAdmin
+    .from('payments')
+    .select('id', { count: 'exact' })
+    .eq('school_id', schoolId)
+    .gte('created_at', today.toISOString().split('T')[0])
+
+  const receiptNumber = `RCT-${dateStr}-${String((todayCount || 0) + 1).padStart(4, '0')}`
+
+  // Get active term
+  const { data: term } = await supabaseAdmin
+    .from('terms')
+    .select('id')
+    .eq('school_id', schoolId)
+    .eq('is_active', true)
+    .single()
+
+  // Create payment record
+  const { data: payment, error: paymentError } = await supabaseAdmin
+    .from('payments')
+    .insert({
+      school_id: schoolId,
+      student_id: tx.matched_student_id,
+      bill_id: tx.matched_bill_id,
+      transaction_id: tx.id,
+      term_id: term?.id,
+      amount: tx.amount,
+      payment_date: new Date().toISOString().split('T')[0],
+      receipt_number: receiptNumber,
+      whatsapp_sent: false
+    })
+    .select()
+    .single()
+
+  if (paymentError) throw new Error(paymentError.message)
+
+  // Update fee bill amount paid and status
+  const { data: bill } = await supabaseAdmin
+    .from('fee_bills')
+    .select('total_amount, amount_paid')
+    .eq('id', tx.matched_bill_id)
+    .single()
+
+  if (bill) {
+    const newAmountPaid = Number(bill.amount_paid) + Number(tx.amount)
+    const newStatus = newAmountPaid >= Number(bill.total_amount)
+      ? 'paid'
+      : newAmountPaid > 0
+        ? 'partial'
+        : 'unpaid'
+
+    await supabaseAdmin
+      .from('fee_bills')
+      .update({
+        amount_paid: newAmountPaid,
+        status: newStatus
+      })
+      .eq('id', tx.matched_bill_id)
+  }
+
+  // Mark transaction as matched
+  await supabaseAdmin
+    .from('bank_transactions')
+    .update({ is_matched: true })
+    .eq('id', tx.id)
+
+  return {
+    paymentId: payment.id,
+    receiptNumber: payment.receipt_number,
+    amount: Number(payment.amount),
+    studentId: tx.matched_student_id,
+    billId: tx.matched_bill_id
   }
 }
 
