@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'
 import { supabaseAdmin } from '../config/supabase'
+import { notificationService } from '../services/notificationService'
 
 // ─── GET DASHBOARD STATS ─────────────────────────────────────────────────────
 export async function getDashboardStats(req: Request, res: Response): Promise<void> {
@@ -308,30 +309,21 @@ export async function sendReminder(req: Request, res: Response): Promise<void> {
     const schoolId = req.user!.schoolId
     const { studentId } = req.params
 
-    // Get student and bill info
-    const { data: student, error: studentError } = await supabaseAdmin
+    const { data: student } = await supabaseAdmin
       .from('students')
       .select(`
-        id,
-        full_name,
-        parent_name,
-        parent_phone,
-        school_id
+        id, full_name, parent_name, parent_phone, school_id,
+        classes ( name )
       `)
       .eq('id', studentId)
       .eq('school_id', schoolId)
       .single()
 
-    if (studentError || !student) {
-      res.status(404).json({
-        success: false,
-        error: 'Student not found',
-        code: 'STUDENT_NOT_FOUND'
-      })
+    if (!student) {
+      res.status(404).json({ success: false, error: 'Student not found', code: 'STUDENT_NOT_FOUND' })
       return
     }
 
-    // Get active term bill
     const { data: term } = await supabaseAdmin
       .from('terms')
       .select('id, name, session')
@@ -346,70 +338,42 @@ export async function sendReminder(req: Request, res: Response): Promise<void> {
       .eq('term_id', term?.id)
       .single()
 
-    // Get school bank details
     const { data: school } = await supabaseAdmin
       .from('schools')
       .select('name, bank_name, bank_account_number, bank_account_name')
       .eq('id', schoolId)
       .single()
 
-    const balance = bill
-      ? Number(bill.total_amount) - Number(bill.amount_paid)
-      : 0
-
-    const message = `Hello ${student.parent_name || 'Parent'},
-
-This is a friendly reminder from ${school?.name}.
-
-Student: ${student.full_name}
-Term: ${term?.name} ${term?.session}
-Amount Due: ₦${Number(bill?.total_amount || 0).toLocaleString()}
-Amount Paid: ₦${Number(bill?.amount_paid || 0).toLocaleString()}
-Balance Outstanding: ₦${balance.toLocaleString()}
-
-Please make payment to:
-Bank: ${school?.bank_name}
-Account Number: ${school?.bank_account_number}
-Account Name: ${school?.bank_account_name}
-Payment Reference: ${bill?.payment_reference}
-
-Please include your payment reference in your transfer narration.
-
-Thank you.
-— ${school?.name}`
-
-    // Log mock notification
-    console.log(`
-========= WHATSAPP REMINDER (MOCK) =========
-To: ${student.parent_phone}
-${message}
-============================================
-    `)
-
-    // Log to notification_log
-    await supabaseAdmin
-      .from('notification_log')
-      .insert({
-        school_id: schoolId,
-        student_id: studentId,
-        parent_phone: student.parent_phone,
-        channel: 'whatsapp',
-        message,
-        status: 'mock'
-      })
+    const status = await notificationService.sendReminderNotification(
+      {
+        parentPhone: (student as any).parent_phone,
+        parentName: (student as any).parent_name || 'Parent',
+        studentName: (student as any).full_name,
+        className: (student as any).classes?.name || '',
+        totalAmount: Number(bill?.total_amount || 0),
+        amountPaid: Number(bill?.amount_paid || 0),
+        balance: Number(bill?.total_amount || 0) - Number(bill?.amount_paid || 0),
+        termName: term?.name || '',
+        session: term?.session || '',
+        paymentReference: bill?.payment_reference || '',
+        bankName: school?.bank_name || '',
+        accountNumber: school?.bank_account_number || '',
+        accountName: school?.bank_account_name || '',
+        schoolName: school?.name || ''
+      },
+      schoolId,
+      studentId
+    )
 
     res.json({
       success: true,
-      message: `Reminder sent to ${student.parent_phone}`
+      message: `Reminder ${status} to ${(student as any).parent_phone}`,
+      data: { status }
     })
 
   } catch (error) {
     console.error('Send reminder error:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to send reminder',
-      code: 'REMINDER_ERROR'
-    })
+    res.status(500).json({ success: false, error: 'Failed to send reminder', code: 'REMINDER_ERROR' })
   }
 }
 
@@ -418,7 +382,7 @@ export async function sendBulkReminders(req: Request, res: Response): Promise<vo
   try {
     const schoolId = req.user!.schoolId
 
-    // Get all unpaid and partial students
+    // Get active term
     const { data: term } = await supabaseAdmin
       .from('terms')
       .select('id, name, session')
@@ -445,7 +409,8 @@ export async function sendBulkReminders(req: Request, res: Response): Promise<vo
           id,
           full_name,
           parent_name,
-          parent_phone
+          parent_phone,
+          classes ( name )
         )
       `)
       .eq('school_id', schoolId)
@@ -462,26 +427,32 @@ export async function sendBulkReminders(req: Request, res: Response): Promise<vo
 
     let sentCount = 0
 
+    // TODO: Move to background job queue (Bull/BullMQ) when school count exceeds 100
+    // Current sequential loop is sufficient for single-school bulk sends up to 500 students
     for (const bill of bills || []) {
       const student = bill.students as any
       if (!student?.parent_phone) continue
 
-      const balance = Number(bill.total_amount) - Number(bill.amount_paid)
-
-      const message = `Hello ${student.parent_name || 'Parent'}, fees reminder from ${school?.name}. Student: ${student.full_name}. Balance: ₦${balance.toLocaleString()}. Reference: ${bill.payment_reference}. Pay to ${school?.bank_name} ${school?.bank_account_number}.`
-
-      console.log(`[BULK REMINDER MOCK] To: ${student.parent_phone} | ${student.full_name} | ₦${balance.toLocaleString()}`)
-
-      await supabaseAdmin
-        .from('notification_log')
-        .insert({
-          school_id: schoolId,
-          student_id: student.id,
-          parent_phone: student.parent_phone,
-          channel: 'whatsapp',
-          message,
-          status: 'mock'
-        })
+      await notificationService.sendReminderNotification(
+        {
+          parentPhone: student.parent_phone,
+          parentName: student.parent_name || 'Parent',
+          studentName: student.full_name,
+          className: student.classes?.name || '',
+          totalAmount: Number(bill.total_amount),
+          amountPaid: Number(bill.amount_paid),
+          balance: Number(bill.total_amount) - Number(bill.amount_paid),
+          termName: term.name,
+          session: term.session,
+          paymentReference: bill.payment_reference || '',
+          bankName: school?.bank_name || '',
+          accountNumber: school?.bank_account_number || '',
+          accountName: school?.bank_account_name || '',
+          schoolName: school?.name || ''
+        },
+        schoolId,
+        student.id
+      )
 
       sentCount++
     }

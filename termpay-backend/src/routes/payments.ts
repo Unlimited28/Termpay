@@ -1,12 +1,28 @@
 import { Router } from 'express'
+import {
+  listPayments,
+  recordManualPayment,
+  resendNotification,
+  getPayment
+} from '../controllers/paymentsController'
+import { authMiddleware } from '../middleware/authMiddleware'
+import { requireRole } from '../middleware/roleMiddleware'
+
 const router = Router()
 
-router.all('*', (req, res) => {
-  res.status(501).json({
-    success: false,
-    error: 'Payments routes not yet implemented',
-    code: 'NOT_IMPLEMENTED'
-  })
-})
+router.use(authMiddleware)
+
+router.get('/', listPayments)
+router.post(
+  '/manual',
+  requireRole('proprietor', 'bursar', 'super_admin'),
+  recordManualPayment
+)
+router.get('/:id', getPayment)
+router.post(
+  '/:id/resend',
+  requireRole('proprietor', 'bursar', 'super_admin'),
+  resendNotification
+)
 
 export default router
