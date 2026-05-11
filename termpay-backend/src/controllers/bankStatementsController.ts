@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import { supabaseAdmin } from '../config/supabase'
 import { statementParser } from '../services/statementParser'
 import { matchingEngine } from '../services/matchingEngine'
+import { generateAndStoreReceipt } from '../services/receiptGenerator'
 
 // ─── UPLOAD BANK STATEMENT ────────────────────────────────────────────────────
 export async function uploadStatement(req: Request, res: Response): Promise<void> {
@@ -361,6 +362,11 @@ async function createPaymentRecord(
     .from('bank_transactions')
     .update({ is_matched: true })
     .eq('id', tx.id)
+
+  // Fire and forget — do not await
+  generateAndStoreReceipt(payment.id, schoolId).catch(err => {
+    console.error(`Receipt generation failed for payment ${payment.id}:`, err)
+  })
 
   return {
     paymentId: payment.id,
