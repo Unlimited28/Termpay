@@ -34,6 +34,14 @@ npm run dev
 curl http://localhost:3001/health
 ```
 
+### Step 7 — Create Bank Statements Storage Bucket
+1. Go to Supabase Dashboard → Storage
+2. Create a new bucket called: bank-statements (set to private)
+
+### Step 8 — Create Receipts Storage Bucket
+1. Go to Supabase Dashboard → Storage
+2. Create a new bucket called: receipts (set to private)
+
 ## Project Structure
 
 - `src/config`: Environment and client configurations
