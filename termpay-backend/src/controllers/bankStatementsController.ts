@@ -3,6 +3,7 @@ import { supabaseAdmin } from '../config/supabase'
 import { statementParser } from '../services/statementParser'
 import { matchingEngine } from '../services/matchingEngine'
 import { generateAndStoreReceipt } from '../services/receiptGenerator'
+import { notificationService } from '../services/notificationService'
 
 // ─── UPLOAD BANK STATEMENT ────────────────────────────────────────────────────
 export async function uploadStatement(req: Request, res: Response): Promise<void> {
@@ -367,6 +368,71 @@ async function createPaymentRecord(
   generateAndStoreReceipt(payment.id, schoolId).catch(err => {
     console.error(`Receipt generation failed for payment ${payment.id}:`, err)
   })
+
+  // Get payment details for notification using a joined query
+  // Fire and forget — do not await
+  ;(async () => {
+    try {
+      const { data: paymentDetails } = await supabaseAdmin
+        .from('payments')
+        .select(`
+          id,
+          amount,
+          payment_date,
+          receipt_number,
+          students (
+            id,
+            full_name,
+            parent_name,
+            parent_phone,
+            classes ( name )
+          ),
+          fee_bills (
+            total_amount,
+            amount_paid
+          ),
+          terms (
+            name,
+            session
+          )
+        `)
+        .eq('id', payment.id)
+        .single()
+
+      const { data: school } = await supabaseAdmin
+        .from('schools')
+        .select('name')
+        .eq('id', schoolId)
+        .single()
+
+      if (paymentDetails && school) {
+        const student = (paymentDetails as any).students
+        const bill = (paymentDetails as any).fee_bills
+        const term = (paymentDetails as any).terms
+
+        await notificationService.sendPaymentNotification(
+          {
+            parentPhone: student?.parent_phone,
+            parentName: student?.parent_name || 'Parent',
+            studentName: student?.full_name,
+            className: student?.classes?.name || '',
+            amount: Number(paymentDetails.amount),
+            termName: term?.name || '',
+            session: term?.session || '',
+            balance: Number(bill?.total_amount || 0) - Number(bill?.amount_paid || 0),
+            receiptNumber: paymentDetails.receipt_number!,
+            paymentDate: paymentDetails.payment_date,
+            schoolName: school.name
+          },
+          schoolId,
+          paymentDetails.id,
+          student?.id
+        )
+      }
+    } catch (notifError) {
+      console.error('Notification failed:', notifError)
+    }
+  })()
 
   return {
     paymentId: payment.id,

@@ -19,8 +19,8 @@ router.use(authMiddleware)
 router.get('/stats', getDashboardStats)
 router.get('/recent-payments', getRecentPayments)
 router.get('/unpaid-students', getUnpaidStudents)
-router.post('/reminders/:studentId', sendReminder)
 router.post('/reminders/bulk', sendBulkReminders)
+router.post('/reminders/:studentId', sendReminder)
 
 // Proprietor and super admin only
 router.get(
