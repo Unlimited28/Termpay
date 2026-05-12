@@ -10,9 +10,10 @@ import {
   GraduationCap,
   BarChart2
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { Toast, Logo } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
-import { mockUser, mockTerm } from '../mock/mockData'
+import { dashboardService } from '../services/dashboardService'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -23,6 +24,12 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   const { user, logout } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+
+  const { data: stats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: dashboardService.getStats,
+    enabled: !!user
+  })
 
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, exact: true },
@@ -60,7 +67,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     return location.pathname.startsWith(item.path)
   }
 
-  const initials = (user?.fullName || mockUser.fullName)
+  const initials = (user?.fullName || 'User')
     .split(' ')
     .map(n => n[0])
     .join('')
@@ -92,10 +99,10 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
           <Logo showDot className="text-[20px]" />
           <div className="mt-1">
             <p className="text-[11px] text-ink-muted truncate uppercase tracking-wider font-medium">
-              {user?.schoolName || mockUser.schoolName}
+              {user?.schoolName || 'School'}
             </p>
             <div className="inline-flex items-center mt-2 bg-emerald/8 border border-emerald/20 text-emerald rounded-full px-2 py-0.5 text-xs font-medium">
-              {mockTerm.name} {mockTerm.session}
+              {stats?.termName || 'Current'} {stats?.session || 'Term'}
             </div>
           </div>
         </div>
@@ -133,8 +140,8 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
               {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-medium text-ink-primary truncate">{user?.fullName || mockUser.fullName}</p>
-              <p className="text-[11px] text-ink-muted capitalize">{user?.role || mockUser.role}</p>
+              <p className="text-[13px] font-medium text-ink-primary truncate">{user?.fullName || 'User'}</p>
+              <p className="text-[11px] text-ink-muted capitalize">{user?.role || ''}</p>
             </div>
           </div>
           <button
@@ -165,7 +172,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
 
           <div className="hidden md:flex items-center gap-2 text-ink-muted">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald animate-glow-pulse" />
-            {user?.schoolName || mockUser.schoolName}
+            {user?.schoolName || 'School'}
           </div>
         </header>
 

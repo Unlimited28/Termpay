@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect, type ClipboardEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Logo, Button, Input } from '../../components/ui'
+import { authService } from '../../services/authService'
+import { useToast } from '../../context/ToastContext'
+import { getErrorMessage } from '../../services/apiClient'
 
 const ParentLoginPage = () => {
   const [phone, setPhone] = useState('')
@@ -9,6 +12,7 @@ const ParentLoginPage = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [countdown, setCountdown] = useState(60)
   const navigate = useNavigate()
+  const { toast } = useToast()
   const otpRefs = useRef<(HTMLInputElement | null)[]>([])
 
   useEffect(() => {
@@ -24,11 +28,19 @@ const ParentLoginPage = () => {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    // Mock API delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsLoading(false)
-    setStep('otp')
-    setCountdown(60)
+    try {
+      const result = await authService.requestParentOTP(phone)
+      setStep('otp')
+      setCountdown(60)
+      if (result.debugOtp) {
+        console.log('DEBUG OTP:', result.debugOtp)
+        toast.info(`Dev mode OTP: ${result.debugOtp}`)
+      }
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleOtpChange = (index: number, value: string) => {
@@ -64,10 +76,19 @@ const ParentLoginPage = () => {
 
   const handleVerify = async () => {
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    localStorage.setItem('parentAuth', 'true')
-    setIsLoading(false)
-    navigate('/parent/dashboard')
+    try {
+      const code = otp.join('')
+      const data = await authService.verifyParentOTP(phone, code)
+
+      localStorage.setItem('termpay_parent_token', data.token)
+      localStorage.setItem('termpay_parent_students', JSON.stringify(data.students))
+
+      navigate('/parent/dashboard')
+    } catch (err) {
+      toast.error('Invalid or expired OTP. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -138,7 +159,7 @@ const ParentLoginPage = () => {
                 </p>
               ) : (
                 <button
-                  onClick={() => setCountdown(60)}
+                  onClick={handleSendOtp}
                   className="text-sm font-bold text-navy hover:underline"
                 >
                   Resend OTP

@@ -11,36 +11,60 @@ import {
   MessageSquare
 } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
-import { Card, Button, Badge } from '../../../components/ui'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { Card, Button, Badge, LoadingSkeleton } from '../../../components/ui'
 import CountUp from '../../../components/CountUp'
 import { useToast } from '../../../context/ToastContext'
 import { useAuth } from '../../../context/AuthContext'
-import { useData } from '../../../context/DataContext'
-import {
-  mockRecentPayments,
-  mockTerm
-} from '../../../mock/mockData'
+import { dashboardService } from '../../../services/dashboardService'
+import { getErrorMessage } from '../../../services/apiClient'
 
 const BursarDashboard = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const { user } = useAuth()
-  const { students, stats } = useData()
 
-  const unpaidStudents = students.filter(s => s.status === 'unpaid').slice(0, 5)
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: dashboardService.getStats,
+    refetchInterval: 30000
+  })
+
+  const { data: recentPayments, isLoading: paymentsLoading } = useQuery({
+    queryKey: ['recent-payments'],
+    queryFn: () => dashboardService.getRecentPayments(10)
+  })
+
+  const { data: unpaidStudents, isLoading: unpaidLoading } = useQuery({
+    queryKey: ['unpaid-students'],
+    queryFn: dashboardService.getUnpaidStudents
+  })
+
+  const sendReminderMutation = useMutation({
+    mutationFn: (studentId: string) => dashboardService.sendReminder(studentId),
+    onSuccess: () => toast.success('Reminder sent successfully'),
+    onError: (err) => toast.error(getErrorMessage(err))
+  })
+
+  const sendBulkMutation = useMutation({
+    mutationFn: dashboardService.sendBulkReminders,
+    onSuccess: (data) => toast.success(data.message || 'Reminders sent'),
+    onError: (err) => toast.error(getErrorMessage(err))
+  })
 
   const getGreeting = () => {
     const hours = new Date().getHours()
-    const name = user?.fullName || 'Mrs. Folake Adeyemi'
+    const name = user?.fullName || 'Bursar'
     const parts = name.split(' ')
     const lastName = parts[parts.length - 1]
 
-    let title = 'Mrs.'
+    let title = 'Mx.'
     if (name.startsWith('Dr.')) title = 'Dr.'
     else if (name.startsWith('Mr.')) title = 'Mr.'
     else if (name.startsWith('Mrs.')) title = 'Mrs.'
     else if (name.startsWith('Miss')) title = 'Miss'
     else if (name.startsWith('Ms.')) title = 'Ms.'
+    else if (user?.role === 'bursar') title = 'Mrs.' // Fallback from requirements/mock
 
     let greeting = 'Good morning'
     if (hours >= 12 && hours < 17) greeting = 'Good afternoon'
@@ -48,6 +72,12 @@ const BursarDashboard = () => {
 
     return `${greeting}, ${title} ${lastName} 👋`
   }
+
+  if (statsLoading) {
+    return <div className="p-8"><LoadingSkeleton variant="stats" /></div>
+  }
+
+  if (!stats) return null
 
   const statsRow1 = [
     { label: 'Total Students', value: stats.totalStudents, icon: Users, accent: '#3B82F6', subtle: 'rgba(59, 130, 246, 0.08)', iconColor: '#3B82F6' },
@@ -67,20 +97,12 @@ const BursarDashboard = () => {
     { name: 'Unpaid', value: stats.unpaidCount, color: '#EF4444' },
   ]
 
-  const handleSendReminder = (_studentName: string, parentName: string) => {
-    toast.success(`Reminder sent to ${parentName}`)
-  }
-
-  const handleSendAllReminders = () => {
-    toast.success(`Reminders sent to ${unpaidStudents.length} parents`)
-  }
-
   return (
     <div className="ambient-green animate-in fade-in slide-up duration-400">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-[26px] font-bold text-ink-primary tracking-tighter">{getGreeting()}</h1>
-          <p className="text-[13px] text-[#64748B] mt-1">{mockTerm.name} {mockTerm.session} · {user?.schoolName || 'Yomfield Nursery & Primary School'}</p>
+          <p className="text-[13px] text-[#64748B] mt-1">{stats.termName} {stats.session} · {user?.schoolName}</p>
         </div>
 
         <div className="flex gap-3">
@@ -203,88 +225,113 @@ const BursarDashboard = () => {
           actions={<Button variant="ghost" size="sm" onClick={() => navigate('/payments')}>View All</Button>}
           className="p-0"
         >
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-transparent">
-                  <th className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-[#475569]">Student</th>
-                  <th className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Amount</th>
-                  <th className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {mockRecentPayments.map((payment) => (
-                  <tr key={payment.id} className="group hover:bg-white/[0.02] transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-ink-primary">{payment.studentName}</span>
-                        <span className="text-[12px] text-[#475569]">{payment.className}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="text-sm font-semibold text-ink-primary">₦{payment.amount.toLocaleString()}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <Badge variant="paid">Paid</Badge>
-                    </td>
+          {paymentsLoading ? (
+            <div className="p-6"><LoadingSkeleton variant="table" rows={5} /></div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-transparent">
+                    <th className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-[#475569]">Student</th>
+                    <th className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Amount</th>
+                    <th className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {recentPayments?.map((payment: any) => (
+                    <tr key={payment.id} className="group hover:bg-white/[0.02] transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-ink-primary">{payment.studentName}</span>
+                          <span className="text-[12px] text-[#475569]">{payment.className}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="text-sm font-semibold text-ink-primary">₦{payment.amount.toLocaleString()}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Badge variant="paid">Paid</Badge>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!recentPayments || recentPayments.length === 0) && (
+                    <tr>
+                      <td colSpan={3} className="px-6 py-8 text-center text-[#475569] text-sm">
+                        No recent payments
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Card>
       </div>
 
       {/* Unpaid Students */}
       <Card
         className="!bg-danger/4 border-danger/12"
-        title={`Unpaid Students (${unpaidStudents.length})`}
+        title={`Unpaid Students (${unpaidStudents?.length || 0})`}
         subtitle="Outstanding balances for current term"
         actions={
           <Button
             variant="destructive"
             size="sm"
-            onClick={handleSendAllReminders}
+            onClick={() => sendBulkMutation.mutate()}
+            isLoading={sendBulkMutation.isPending}
+            disabled={!unpaidStudents || unpaidStudents.length === 0}
           >
             <MessageSquare size={16} className="mr-2" />
             Send All Reminders
           </Button>
         }
       >
-        <div className="overflow-x-auto -mx-6">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-transparent">
-                <th className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-[#475569]">Student</th>
-                <th className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Balance</th>
-                <th className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.04]">
-              {unpaidStudents.map((student) => (
-                <tr key={student.id} className="group hover:bg-white/[0.02] transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-ink-primary">{student.fullName}</span>
-                      <span className="text-[12px] text-[#475569]">{student.className} • {student.parentPhone}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right font-bold text-danger">₦{student.balance.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-right">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="h-8 px-3 text-xs"
-                      onClick={() => handleSendReminder(student.fullName, student.parentName)}
-                    >
-                      Remind
-                    </Button>
-                  </td>
+        {unpaidLoading ? (
+          <div className="py-4"><LoadingSkeleton variant="table" rows={5} /></div>
+        ) : (
+          <div className="overflow-x-auto -mx-6">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-transparent">
+                  <th className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-[#475569]">Student</th>
+                  <th className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Balance</th>
+                  <th className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-white/[0.04]">
+                {unpaidStudents?.map((student: any) => (
+                  <tr key={student.id} className="group hover:bg-white/[0.02] transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-ink-primary">{student.fullName}</span>
+                        <span className="text-[12px] text-[#475569]">{student.className} • {student.parentPhone}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right font-bold text-danger">₦{student.balance.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-right">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="h-8 px-3 text-xs"
+                        onClick={() => sendReminderMutation.mutate(student.id)}
+                        isLoading={sendReminderMutation.isPending && sendReminderMutation.variables === student.id}
+                      >
+                        Remind
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {(!unpaidStudents || unpaidStudents.length === 0) && (
+                  <tr>
+                    <td colSpan={3} className="px-6 py-8 text-center text-[#475569] text-sm">
+                      No unpaid students
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   )

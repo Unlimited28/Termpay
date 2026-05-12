@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Plus,
@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   AlertCircle
 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AdminLayout } from '../../layouts'
 import {
   Card,
@@ -20,20 +21,21 @@ import {
   Select,
   Badge,
   Modal,
-  EmptyState
+  EmptyState,
+  LoadingSkeleton
 } from '../../components/ui'
 import { useToast } from '../../context/ToastContext'
 import { useAuth } from '../../context/AuthContext'
-import { useData } from '../../context/DataContext'
-import { mockClasses } from '../../mock/mockData'
-import { type Student } from '../../types'
+import { studentsService, type StudentFilters } from '../../services/studentsService'
+import { dashboardService } from '../../services/dashboardService'
+import { getErrorMessage } from '../../services/apiClient'
 
 const StudentsPage = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { toast } = useToast()
   const { user } = useAuth()
-  const { students, addStudent } = useData()
+  const queryClient = useQueryClient()
 
   const isProprietor = user?.role === 'proprietor'
 
@@ -41,6 +43,8 @@ const StudentsPage = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [classFilter, setClassFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 15
 
   // Handle URL parameters
   useEffect(() => {
@@ -49,6 +53,32 @@ const StudentsPage = () => {
       setStatusFilter(status)
     }
   }, [searchParams])
+
+  const filters: StudentFilters = {
+    search: searchTerm,
+    classId: classFilter === 'all' ? undefined : classFilter,
+    status: statusFilter,
+    page: currentPage,
+    limit: itemsPerPage
+  }
+
+  // Fetch students
+  const { data: studentsData, isLoading: studentsLoading } = useQuery({
+    queryKey: ['students', filters],
+    queryFn: () => studentsService.listStudents(filters)
+  })
+
+  // Fetch classes
+  const { data: classes } = useQuery({
+    queryKey: ['classes'],
+    queryFn: studentsService.getClasses
+  })
+
+  // Fetch stats for the stats bar
+  const { data: stats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: dashboardService.getStats
+  })
 
   // State for Modal
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -61,49 +91,32 @@ const StudentsPage = () => {
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const createMutation = useMutation({
+    mutationFn: studentsService.createStudent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      toast.success('Student added successfully')
+      setIsModalOpen(false)
+      setNewStudent({ fullName: '', classId: '', parentName: '', parentPhone: '', parentEmail: '' })
+      setErrors({})
+    },
+    onError: (err) => toast.error(getErrorMessage(err))
+  })
 
-  // Filter logic
-  const filteredStudents = useMemo(() => {
-    return students.filter(student => {
-      const matchesSearch = student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           student.className.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           student.parentPhone.includes(searchTerm)
-      const matchesClass = classFilter === 'all' || student.classId === classFilter
-      const matchesStatus = statusFilter === 'all' || student.status === statusFilter
-
-      return matchesSearch && matchesClass && matchesStatus
-    })
-  }, [students, searchTerm, classFilter, statusFilter])
-
-  const stats = useMemo(() => {
-    const total = students.length
-    const paid = students.filter(s => s.status === 'paid').length
-    const partial = students.filter(s => s.status === 'partial').length
-    const unpaid = students.filter(s => s.status === 'unpaid').length
-    return { total, paid, partial, unpaid }
-  }, [students])
-
-  // Pagination logic
-  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage)
-  const paginatedStudents = filteredStudents.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
+  const sendReminderMutation = useMutation({
+    mutationFn: (studentId: string) => dashboardService.sendReminder(studentId),
+    onSuccess: () => toast.success('Reminder sent successfully'),
+    onError: (err) => toast.error(getErrorMessage(err))
+  })
 
   const handleExport = () => {
     toast.info("Exporting students list...")
   }
 
-  const handleSendReminder = (student: Student) => {
-    toast.success(`Reminder sent to ${student.parentPhone}`)
-  }
-
   const validatePhone = (phone: string) => {
     const regex = /^(07|08|09)\d{9}$/
-    return regex.test(phone)
+    return regex.test(phone) || phone.startsWith('234') || phone.startsWith('+234')
   }
 
   const handleAddStudent = () => {
@@ -122,36 +135,12 @@ const StudentsPage = () => {
       return
     }
 
-    const selectedClass = mockClasses.find(c => c.id === newStudent.classId)
-    const nextId = `s${students.length + 1}`
-    const admissionNumber = `YOM-${(students.length + 1).toString().padStart(3, '0')}`
-
-    const studentToAdd: Student = {
-      id: nextId,
-      fullName: newStudent.fullName,
-      admissionNumber,
-      className: selectedClass?.name || '',
-      classId: newStudent.classId,
-      parentName: newStudent.parentName,
-      parentPhone: newStudent.parentPhone,
-      parentEmail: newStudent.parentEmail,
-      paymentReference: `YOM-2026-${(students.length + 1).toString().padStart(4, '0')}`,
-      totalBill: 85000,
-      amountPaid: 0,
-      balance: 85000,
-      status: 'unpaid'
-    }
-
-    addStudent(studentToAdd)
-    setIsModalOpen(false)
-    setNewStudent({ fullName: '', classId: '', parentName: '', parentPhone: '', parentEmail: '' })
-    setErrors({})
-    toast.success("Student added successfully")
+    createMutation.mutate(newStudent)
   }
 
   const classOptions = [
     { value: 'all', label: 'All Classes' },
-    ...mockClasses.map(c => ({ value: c.id, label: c.name }))
+    ...(classes?.map((c: any) => ({ value: c.id, label: c.name })) || [])
   ]
 
   const statusOptions = [
@@ -160,6 +149,10 @@ const StudentsPage = () => {
     { value: 'partial', label: 'Partial' },
     { value: 'unpaid', label: 'Unpaid' },
   ]
+
+  const students = studentsData?.data || []
+  const totalItems = studentsData?.pagination?.total || 0
+  const totalPages = studentsData?.pagination?.totalPages || 0
 
   return (
     <AdminLayout>
@@ -174,7 +167,7 @@ const StudentsPage = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-[28px] font-bold text-ink-primary tracking-tighter">Students</h1>
-            <p className="text-[14px] text-ink-secondary">{filteredStudents.length} students enrolled</p>
+            <p className="text-[14px] text-ink-secondary">{totalItems} students enrolled</p>
           </div>
           <div className="flex gap-3">
             <Button variant="secondary" onClick={handleExport}>
@@ -195,22 +188,22 @@ const StudentsPage = () => {
         {/* Stats Bar */}
         <div className="flex items-center gap-6 mb-8 p-4 bg-white/[0.02] border border-white/6 rounded-xl text-[13px] font-medium">
           <div className="flex items-center gap-2">
-            <span className="text-ink-primary font-bold">{stats.total}</span>
+            <span className="text-ink-primary font-bold">{stats?.totalStudents || 0}</span>
             <span className="text-ink-muted">Total</span>
           </div>
           <div className="w-px h-4 bg-white/10" />
           <div className="flex items-center gap-2">
-            <span className="text-emerald font-bold">{stats.paid}</span>
+            <span className="text-emerald font-bold">{stats?.paidCount || 0}</span>
             <span className="text-ink-muted">Paid</span>
           </div>
           <div className="w-px h-4 bg-white/10" />
           <div className="flex items-center gap-2">
-            <span className="text-warning font-bold">{stats.partial}</span>
+            <span className="text-warning font-bold">{stats?.partialCount || 0}</span>
             <span className="text-ink-muted">Partial</span>
           </div>
           <div className="w-px h-4 bg-white/10" />
           <div className="flex items-center gap-2">
-            <span className="text-danger font-bold">{stats.unpaid}</span>
+            <span className="text-danger font-bold">{stats?.unpaidCount || 0}</span>
             <span className="text-ink-muted">Unpaid</span>
           </div>
         </div>
@@ -253,140 +246,148 @@ const StudentsPage = () => {
 
         {/* Students Table */}
         <Card className="p-0 overflow-hidden">
-          {/* Desktop View */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-transparent">
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569]">#</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569]">Student Name + Class</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569]">Parent Phone</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Amount Paid</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Balance</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569]">Status</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {paginatedStudents.length > 0 ? (
-                  paginatedStudents.map((student, i) => (
-                    <tr key={student.id} className="group hover:bg-white/[0.02] transition-colors">
-                      <td className="px-6 py-4 text-[13px] text-[#475569]">{(currentPage - 1) * itemsPerPage + i + 1}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-ink-primary">{student.fullName}</span>
-                          <span className="text-[12px] text-[#475569]">{student.className}</span>
+          {studentsLoading ? (
+             <div className="p-6"><LoadingSkeleton variant="table" rows={10} /></div>
+          ) : (
+            <>
+              {/* Desktop View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-transparent">
+                      <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569]">#</th>
+                      <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569]">Student Name + Class</th>
+                      <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569]">Parent Phone</th>
+                      <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Amount Paid</th>
+                      <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Balance</th>
+                      <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569]">Status</th>
+                      <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-[#475569] text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {students.length > 0 ? (
+                      students.map((student: any, i: number) => (
+                        <tr key={student.id} className="group hover:bg-white/[0.02] transition-colors">
+                          <td className="px-6 py-4 text-[13px] text-[#475569]">{(currentPage - 1) * itemsPerPage + i + 1}</td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium text-ink-primary">{student.fullName}</span>
+                              <span className="text-[12px] text-[#475569]">{student.className}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-ink-secondary">{student.parentPhone}</td>
+                          <td className={`px-6 py-4 text-right text-sm ${student.status === 'paid' ? 'font-bold text-emerald' : 'text-ink-secondary'}`}>
+                            ₦{student.amountPaid.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            {student.balance === 0 ? (
+                              <div className="flex justify-end">
+                                <CheckCircle2 size={18} className="text-emerald" />
+                              </div>
+                            ) : (
+                              <span className="text-sm font-bold text-danger">₦{student.balance.toLocaleString()}</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge variant={student.status} className="uppercase tracking-widest font-black">
+                              {student.status}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => navigate(`/students/${student.id}`)}
+                                className="p-1.5 rounded-lg hover:bg-white/5 text-ink-muted hover:text-ink-primary transition-colors"
+                              >
+                                <Eye size={18} />
+                              </button>
+                              {!isProprietor && (
+                                <button
+                                  onClick={() => sendReminderMutation.mutate(student.id)}
+                                  disabled={sendReminderMutation.isPending && sendReminderMutation.variables === student.id}
+                                  className="p-1.5 rounded-lg hover:bg-white/5 text-ink-muted hover:text-ink-primary transition-colors"
+                                >
+                                  <MessageSquare size={18} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="py-20 text-center">
+                          <EmptyState
+                            icon={Users}
+                            title="No students found"
+                            description="Try adjusting your search or filters to find what you're looking for."
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile View */}
+              <div className="md:hidden divide-y divide-white/[0.04]">
+                {students.length > 0 ? (
+                  students.map((student: any) => (
+                    <div key={student.id} className="p-4 space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-semibold text-ink-primary">{student.fullName}</h3>
+                          <p className="text-xs text-[#475569]">{student.className}</p>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-ink-secondary">{student.parentPhone}</td>
-                      <td className={`px-6 py-4 text-right text-sm ${student.status === 'paid' ? 'font-bold text-emerald' : 'text-ink-secondary'}`}>
-                        ₦{student.amountPaid.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {student.balance === 0 ? (
-                          <div className="flex justify-end">
-                            <CheckCircle2 size={18} className="text-emerald" />
-                          </div>
-                        ) : (
-                          <span className="text-sm font-bold text-danger">₦{student.balance.toLocaleString()}</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <Badge variant={student.status} className="uppercase tracking-widest font-black">
+                        <Badge variant={student.status} className="uppercase">
                           {student.status}
                         </Badge>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      </div>
+                      <div className="flex justify-between items-end">
+                        <div>
+                          <p className="text-[10px] text-[#475569] uppercase font-bold tracking-widest mb-1">Balance</p>
+                          <p className={`text-sm font-bold ${student.balance === 0 ? 'text-emerald' : 'text-danger'}`}>
+                            {student.balance === 0 ? 'Fully Paid' : `₦${student.balance.toLocaleString()}`}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
                           <button
                             onClick={() => navigate(`/students/${student.id}`)}
-                            className="p-1.5 rounded-lg hover:bg-white/5 text-ink-muted hover:text-ink-primary transition-colors"
+                            className="p-2 bg-white/4 rounded-lg text-ink-muted"
                           >
                             <Eye size={18} />
                           </button>
                           {!isProprietor && (
                             <button
-                              onClick={() => handleSendReminder(student)}
-                              className="p-1.5 rounded-lg hover:bg-white/5 text-ink-muted hover:text-ink-primary transition-colors"
+                              onClick={() => sendReminderMutation.mutate(student.id)}
+                              disabled={sendReminderMutation.isPending && sendReminderMutation.variables === student.id}
+                              className="p-2 bg-white/4 rounded-lg text-ink-muted"
                             >
                               <MessageSquare size={18} />
                             </button>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))
                 ) : (
-                  <tr>
-                    <td colSpan={7} className="py-20 text-center">
-                      <EmptyState
-                        icon={Users}
-                        title="No students found"
-                        description="Try adjusting your search or filters to find what you're looking for."
-                      />
-                    </td>
-                  </tr>
+                  <div className="py-12">
+                    <EmptyState
+                      icon={Users}
+                      title="No students found"
+                      description="Try adjusting your search or filters."
+                    />
+                  </div>
                 )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile View */}
-          <div className="md:hidden divide-y divide-white/[0.04]">
-            {paginatedStudents.length > 0 ? (
-              paginatedStudents.map((student) => (
-                <div key={student.id} className="p-4 space-y-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-ink-primary">{student.fullName}</h3>
-                      <p className="text-xs text-[#475569]">{student.className}</p>
-                    </div>
-                    <Badge variant={student.status} className="uppercase">
-                      {student.status}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <p className="text-[10px] text-[#475569] uppercase font-bold tracking-widest mb-1">Balance</p>
-                      <p className={`text-sm font-bold ${student.balance === 0 ? 'text-emerald' : 'text-danger'}`}>
-                        {student.balance === 0 ? 'Fully Paid' : `₦${student.balance.toLocaleString()}`}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => navigate(`/students/${student.id}`)}
-                        className="p-2 bg-white/4 rounded-lg text-ink-muted"
-                      >
-                        <Eye size={18} />
-                      </button>
-                      {!isProprietor && (
-                        <button
-                          onClick={() => handleSendReminder(student)}
-                          className="p-2 bg-white/4 rounded-lg text-ink-muted"
-                        >
-                          <MessageSquare size={18} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="py-12">
-                <EmptyState
-                  icon={Users}
-                  title="No students found"
-                  description="Try adjusting your search or filters."
-                />
               </div>
-            )}
-          </div>
+            </>
+          )}
 
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="px-6 py-4 border-t border-white/[0.04] flex items-center justify-between">
               <p className="text-[13px] text-ink-muted">
-                Showing <span className="text-ink-secondary font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-ink-secondary font-medium">{Math.min(currentPage * itemsPerPage, filteredStudents.length)}</span> of <span className="text-ink-secondary font-medium">{filteredStudents.length}</span>
+                Showing <span className="text-ink-secondary font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-ink-secondary font-medium">{Math.min(currentPage * itemsPerPage, totalItems)}</span> of <span className="text-ink-secondary font-medium">{totalItems}</span>
               </p>
               <div className="flex gap-2">
                 <Button
@@ -424,7 +425,7 @@ const StudentsPage = () => {
         footer={
           <div className="flex gap-3">
             <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddStudent}>Add Student</Button>
+            <Button onClick={handleAddStudent} isLoading={createMutation.isPending}>Add Student</Button>
           </div>
         }
       >
@@ -439,7 +440,7 @@ const StudentsPage = () => {
           />
           <Select
             label="Class"
-            options={[{ value: '', label: 'Select a class' }, ...mockClasses.map(c => ({ value: c.id, label: c.name }))]}
+            options={[{ value: '', label: 'Select a class' }, ...(classes?.map((c: any) => ({ value: c.id, label: c.name })) || [])]}
             value={newStudent.classId}
             onChange={(e) => setNewStudent({...newStudent, classId: e.target.value})}
             error={errors.classId}

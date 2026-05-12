@@ -7,27 +7,14 @@ import { useAuth } from '../../context/AuthContext'
 const LoginPage = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
-  const { login } = useAuth()
+  const { login, isLoading, error } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    setError('')
-    setIsLoading(true)
-
-    try {
-      const success = await login(email, password)
-      if (success) {
-        navigate('/dashboard')
-      } else {
-        setError('Invalid email or password')
-      }
-    } catch (_err) {
-      setError('An error occurred. Please try again.')
-    } finally {
-      setIsLoading(false)
+    const success = await login(email, password)
+    if (success) {
+      navigate('/dashboard')
     }
   }
 

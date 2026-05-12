@@ -9,24 +9,65 @@ import {
   Hash,
   BookOpen
 } from 'lucide-react'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { AdminLayout } from '../../layouts'
 import {
   PageHeader,
   Card,
   Button,
   Badge,
-  EmptyState
+  EmptyState,
+  LoadingSkeleton
 } from '../../components/ui'
 import { useToast } from '../../context/ToastContext'
-import { mockStudents, mockRecentPayments, mockTerm } from '../../mock/mockData'
+import { studentsService } from '../../services/studentsService'
+import { dashboardService } from '../../services/dashboardService'
+import { paymentsService } from '../../services/paymentsService'
+import { getErrorMessage } from '../../services/apiClient'
 
 const StudentProfilePage = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
 
-  const student = mockStudents.find(s => s.id === id)
-  const payments = mockRecentPayments.filter(p => p.studentId === id)
+  const { data: student, isLoading: studentLoading } = useQuery({
+    queryKey: ['student', id],
+    queryFn: () => studentsService.getStudent(id!),
+    enabled: !!id
+  })
+
+  // We'll use the listPayments service to get payments for this student
+  const { data: paymentsData, isLoading: paymentsLoading } = useQuery({
+    queryKey: ['student-payments', id],
+    queryFn: () => paymentsService.listPayments({ search: student?.admissionNumber, limit: 100 }),
+    enabled: !!student?.admissionNumber
+  })
+
+  const { data: stats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: dashboardService.getStats
+  })
+
+  const sendReminderMutation = useMutation({
+    mutationFn: (studentId: string) => dashboardService.sendReminder(studentId),
+    onSuccess: () => toast.success('Reminder sent successfully'),
+    onError: (err) => toast.error(getErrorMessage(err))
+  })
+
+  const handleDownloadReceipt = async (paymentId: string) => {
+    try {
+      const data = await paymentsService.downloadReceipt(paymentId)
+      if (data.downloadUrl) {
+        window.open(data.downloadUrl, '_blank')
+      }
+    } catch (err) {
+      toast.error('Failed to download receipt')
+    }
+  }
+
+  if (studentLoading) {
+    return <AdminLayout><div className="p-8"><LoadingSkeleton variant="table" rows={10} /></div></AdminLayout>
+  }
 
   if (!student) {
     return (
@@ -41,20 +82,7 @@ const StudentProfilePage = () => {
     )
   }
 
-  const handleDownloadReceipt = (receiptNo: string) => {
-    toast.info(`Downloading receipt ${receiptNo}...`)
-  }
-
-  const handleSendReminder = () => {
-    toast.success(`Reminder sent to ${student.parentName}`)
-  }
-
-  const feeItems = [
-    { item: 'Tuition Fee', amount: 45000 },
-    { item: 'Feeding', amount: 25000 },
-    { item: 'PTA Levy', amount: 5000 },
-    { item: 'Development Levy', amount: 10000 },
-  ]
+  const payments = paymentsData?.data || []
 
   return (
     <AdminLayout>
@@ -63,7 +91,10 @@ const StudentProfilePage = () => {
         subtitle={student.className}
         back="/students"
         actions={
-          <Button onClick={handleSendReminder}>
+          <Button
+            onClick={() => sendReminderMutation.mutate(student.id)}
+            isLoading={sendReminderMutation.isPending}
+          >
             <MessageSquare size={18} className="mr-2" />
             Send Reminder
           </Button>
@@ -136,7 +167,7 @@ const StudentProfilePage = () => {
         </Card>
 
         {/* Current Term Bill Card */}
-        <Card title={`${mockTerm.name} ${mockTerm.session} Bill`} subtitle="Fee breakdown and status">
+        <Card title={`${stats?.termName || ''} ${stats?.session || ''} Bill`} subtitle="Fee breakdown and status">
           <div className="space-y-4">
             <div className="overflow-hidden rounded-lg border border-surface-border">
               <table className="w-full text-sm">
@@ -147,9 +178,9 @@ const StudentProfilePage = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-border">
-                  {feeItems.map((fee, i) => (
+                  {student.feeItems?.map((fee: any, i: number) => (
                     <tr key={i}>
-                      <td className="px-4 py-2 text-text-primary">{fee.item}</td>
+                      <td className="px-4 py-2 text-text-primary">{fee.name}</td>
                       <td className="px-4 py-2 text-text-primary text-right">₦{fee.amount.toLocaleString()}</td>
                     </tr>
                   ))}
@@ -190,36 +221,34 @@ const StudentProfilePage = () => {
                 <th className="px-6 py-4">Date</th>
                 <th className="px-6 py-4">Amount</th>
                 <th className="px-6 py-4">Receipt No</th>
-                <th className="px-6 py-4 text-center">WhatsApp Sent</th>
+                <th className="px-6 py-4 text-center">Status</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border">
-              {payments.length > 0 ? (
-                payments.map((payment) => (
+              {paymentsLoading ? (
+                <tr><td colSpan={5} className="p-6 text-center text-[#64748B]">Loading payments...</td></tr>
+              ) : payments.length > 0 ? (
+                payments.map((payment: any) => (
                   <tr key={payment.id} className="text-sm hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 text-text-primary">{payment.paymentDate}</td>
-                    <td className="px-6 py-4 font-bold text-text-primary">₦{payment.amount.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-text-primary">{new Date(payment.paymentDate).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 font-bold text-text-primary">₦{payment.amountPaid.toLocaleString()}</td>
                     <td className="px-6 py-4 text-text-secondary font-mono">{payment.receiptNumber}</td>
                     <td className="px-6 py-4">
                       <div className="flex justify-center">
-                        {payment.whatsappSent ? (
+                        {payment.status === 'confirmed' ? (
                           <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center text-brand-green">
                             <svg width="12" height="10" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M1 5L4.33333 8.33333L11 1.66667" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           </div>
                         ) : (
-                          <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-text-disabled">
-                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </div>
+                          <Badge variant="warning">{payment.status}</Badge>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => handleDownloadReceipt(payment.receiptNumber)}>
+                      <Button variant="ghost" size="sm" onClick={() => handleDownloadReceipt(payment.id)}>
                         <Download size={16} className="mr-2" />
                         Download
                       </Button>
