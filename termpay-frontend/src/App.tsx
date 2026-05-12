@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import { DataProvider } from './context/DataContext'
 import { ToastProvider } from './context/ToastContext'
 import LoginPage from './pages/admin/LoginPage'
 import DashboardPage from './pages/admin/DashboardPage'
@@ -21,16 +20,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function ParentProtectedRoute({ children }: { children: React.ReactNode }) {
-  const parentAuth = localStorage.getItem('parentAuth')
-  return parentAuth ? <>{children}</> : <Navigate to="/parent/login" replace />
+  const parentToken = localStorage.getItem('termpay_parent_token')
+  return parentToken ? <>{children}</> : <Navigate to="/parent/login" replace />
 }
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <DataProvider>
-          <ToastProvider>
+        <ToastProvider>
             <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -65,7 +63,6 @@ export default function App() {
             <Route path="/" element={<Navigate to="/login" replace />} />
             </Routes>
           </ToastProvider>
-        </DataProvider>
       </AuthProvider>
     </BrowserRouter>
   )

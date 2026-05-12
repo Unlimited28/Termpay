@@ -5,17 +5,21 @@ import {
   CheckCircle,
   Loader2
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { AdminLayout } from '../../layouts'
 import { Card, Button, Badge } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
-import { mockStatementUploads } from '../../mock/mockData'
+import { bankStatementsService } from '../../services/bankStatementsService'
+import { getErrorMessage } from '../../services/apiClient'
 
 const BankStatementsPage = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { toast } = useToast()
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadStep, setUploadStep] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (user?.role === 'proprietor') {
@@ -24,9 +28,13 @@ const BankStatementsPage = () => {
     }
   }, [user, navigate, toast])
 
+  const { data: uploads, isLoading: historyLoading } = useQuery({
+    queryKey: ['bank-statement-uploads'],
+    queryFn: bankStatementsService.listUploads,
+    enabled: user?.role !== 'proprietor'
+  })
+
   if (user?.role === 'proprietor') return null
-  const [uploadStep, setUploadStep] = useState(0)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const steps = [
     { label: 'Uploading file...', duration: 800 },
@@ -35,26 +43,37 @@ const BankStatementsPage = () => {
     { label: 'Complete!', duration: 0 }
   ]
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      startUploadAnimation()
+      const file = e.target.files[0]
+      await startRealUpload(file)
     }
   }
 
-  const startUploadAnimation = async () => {
+  const startRealUpload = async (file: File) => {
     setIsUploading(true)
+    setUploadStep(0) // Uploading
 
-    for (let i = 0; i < steps.length; i++) {
-      setUploadStep(i)
-      if (steps[i].duration > 0) {
-        await new Promise(resolve => setTimeout(resolve, steps[i].duration))
-      }
+    try {
+      const result = await bankStatementsService.uploadStatement(file)
+
+      setUploadStep(1) // Parsing (done on server but we show step)
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      setUploadStep(2) // Matching (will happen on next page but we show step)
+      await new Promise(resolve => setTimeout(resolve, 800))
+
+      setUploadStep(3) // Complete
+
+      setTimeout(() => {
+        navigate(`/bank-statements/${result.uploadId}`)
+      }, 1000)
+
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+      setIsUploading(false)
+      setUploadStep(0)
     }
-
-    // Small delay before navigation
-    setTimeout(() => {
-      navigate('/bank-statements/u1')
-    }, 500)
   }
 
   const triggerFileInput = () => {
@@ -90,6 +109,7 @@ const BankStatementsPage = () => {
               ref={fileInputRef}
               className="hidden"
               onChange={handleFileUpload}
+              accept=".csv,.pdf"
             />
             <CloudUpload size={56} className="text-[#94A3B8] mb-4" />
             <h3 className="text-[20px] font-semibold text-[#0F172A]">Drop your bank statement here</h3>
@@ -105,10 +125,10 @@ const BankStatementsPage = () => {
             </Button>
           </div>
           ) : (
-            <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in-95 duration-300">
+            <div className="w-full max-w-md mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-300">
               <div className="text-center mb-8">
-                <h3 className="text-xl font-bold text-text-primary">Processing Statement</h3>
-                <p className="text-sm text-text-secondary mt-1">Please wait while we analyze your data</p>
+                <h3 className="text-xl font-bold text-[#0F172A]">Processing Statement</h3>
+                <p className="text-sm text-[#64748B] mt-1">Please wait while we analyze your data</p>
               </div>
 
               <div className="space-y-6">
@@ -121,9 +141,9 @@ const BankStatementsPage = () => {
                     <div key={i} className="flex items-center gap-4">
                       <div className={`
                         w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
-                        ${isCompleted ? 'bg-brand-green text-white' : ''}
-                        ${isActive ? 'bg-navy text-white ring-4 ring-navy/10' : ''}
-                        ${isPending ? 'bg-slate-100 text-text-disabled' : ''}
+                        ${isCompleted ? 'bg-[#10B981] text-white' : ''}
+                        ${isActive ? 'bg-[#0F172A] text-white ring-4 ring-[#0F172A]/10' : ''}
+                        ${isPending ? 'bg-slate-100 text-[#94A3B8]' : ''}
                       `}>
                         {isCompleted ? (
                           <CheckCircle size={18} />
@@ -135,15 +155,15 @@ const BankStatementsPage = () => {
                       </div>
                       <span className={`
                         font-medium transition-colors duration-300
-                        ${isCompleted ? 'text-brand-green' : ''}
-                        ${isActive ? 'text-text-primary' : ''}
-                        ${isPending ? 'text-text-disabled' : ''}
+                        ${isCompleted ? 'text-[#10B981]' : ''}
+                        ${isActive ? 'text-[#0F172A]' : ''}
+                        ${isPending ? 'text-[#94A3B8]' : ''}
                       `}>
                         {step.label}
                       </span>
                       {isCompleted && (
                         <div className="ml-auto animate-in fade-in slide-in-from-left-2">
-                          <CheckCircle size={16} className="text-brand-green" />
+                          <CheckCircle size={16} className="text-[#10B981]" />
                         </div>
                       )}
                     </div>
@@ -156,101 +176,119 @@ const BankStatementsPage = () => {
 
       {/* Upload History */}
       <Card title="Previous Uploads" subtitle="View and review past statement matches">
-        {/* Desktop Table View */}
-        <div className="hidden md:block overflow-x-auto -mx-6">
-          <table className="w-full text-left">
-            <thead>
-              <tr>
-                <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4">File Name</th>
-                <th className="px-6 py-4 text-center">Matched</th>
-                <th className="px-6 py-4 text-center">Unmatched</th>
-                <th className="px-6 py-4 text-center">Status</th>
-                <th className="px-6 py-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockStatementUploads.map((upload) => (
-                <tr key={upload.id} className="group transition-colors">
-                  <td className="px-6 py-4 text-[#64748B]">{upload.uploadDate}</td>
-                  <td className="px-6 py-4">
+        {historyLoading ? (
+          <div className="py-8 text-center text-[#64748B]">Loading history...</div>
+        ) : (
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto -mx-6">
+              <table className="w-full text-left">
+                <thead>
+                  <tr>
+                    <th className="px-6 py-4">Date</th>
+                    <th className="px-6 py-4">File Name</th>
+                    <th className="px-6 py-4 text-center">Matched</th>
+                    <th className="px-6 py-4 text-center">Unmatched</th>
+                    <th className="px-6 py-4 text-center">Status</th>
+                    <th className="px-6 py-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {uploads?.map((upload: any) => (
+                    <tr key={upload.id} className="group transition-colors">
+                      <td className="px-6 py-4 text-[#64748B]">{new Date(upload.createdAt).toLocaleDateString()}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-[6px] h-[6px] rounded-full ${upload.status === 'completed' ? 'bg-[#4CAF50]' : 'bg-[#E65100]'}`} />
+                          <span className="font-medium text-[#0F172A]">{upload.fileName}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-[#2E7D32] font-semibold">{upload.stats?.matched || 0}</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-[#B71C1C] font-semibold">{upload.stats?.unmatched || 0}</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <Badge
+                          variant={upload.status === 'completed' ? 'success' : 'warning'}
+                          className="text-[10px] uppercase"
+                        >
+                          {upload.status === 'completed' ? 'Completed' : 'Processing'}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="text-[13px] border-[#E2E8F0] hover:bg-slate-50 transition-all opacity-0 group-hover:opacity-100"
+                          onClick={() => navigate(`/bank-statements/${upload.id}`)}
+                        >
+                          Review →
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!uploads || uploads.length === 0) && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-[#64748B]">
+                        No uploads yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4 -mx-2">
+              {uploads?.map((upload: any) => (
+                <div key={upload.id} className="bg-[#F8FAFC] p-4 rounded-xl space-y-4">
+                  <div>
                     <div className="flex items-center gap-2">
-                      <div className={`w-[6px] h-[6px] rounded-full ${upload.status === 'ready' ? 'bg-[#4CAF50]' : 'bg-[#E65100]'}`} />
-                      <span className="font-medium text-[#0F172A]">{upload.fileName}</span>
+                      <div className={`w-[6px] h-[6px] rounded-full ${upload.status === 'completed' ? 'bg-[#4CAF50]' : 'bg-[#E65100]'}`} />
+                      <span className="font-bold text-[#0F172A] text-sm truncate">{upload.fileName}</span>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="text-[#2E7D32] font-semibold">{upload.matched}</span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="text-[#B71C1C] font-semibold">{upload.unmatched}</span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
+                    <p className="text-xs text-[#64748B] mt-0.5">{new Date(upload.createdAt).toLocaleDateString()}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-white p-2 rounded-lg border border-[#E2E8F0]">
+                      <p className="text-[10px] uppercase tracking-wider text-[#94A3B8] font-bold">Matched</p>
+                      <p className="text-sm font-bold text-[#2E7D32]">{upload.stats?.matched || 0}</p>
+                    </div>
+                    <div className="bg-white p-2 rounded-lg border border-[#E2E8F0]">
+                      <p className="text-[10px] uppercase tracking-wider text-[#94A3B8] font-bold">Unmatched</p>
+                      <p className="text-sm font-bold text-[#B71C1C]">{upload.stats?.unmatched || 0}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-[#E2E8F0]">
                     <Badge
-                      variant={upload.status === 'ready' ? 'success' : 'warning'}
+                      variant={upload.status === 'completed' ? 'success' : 'warning'}
                       className="text-[10px] uppercase"
                     >
-                      {upload.status === 'ready' ? 'Ready' : 'Processing'}
+                      {upload.status === 'completed' ? 'Completed' : 'Processing'}
                     </Badge>
-                  </td>
-                  <td className="px-6 py-4 text-right">
                     <Button
                       variant="secondary"
                       size="sm"
-                      className="text-[13px] border-[#E2E8F0] hover:bg-slate-50 transition-all opacity-0 group-hover:opacity-100"
+                      className="text-xs h-8 px-4"
                       onClick={() => navigate(`/bank-statements/${upload.id}`)}
                     >
                       Review →
                     </Button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Card View */}
-        <div className="md:hidden space-y-4 -mx-2">
-          {mockStatementUploads.map((upload) => (
-            <div key={upload.id} className="bg-[#F8FAFC] p-4 rounded-xl space-y-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-[6px] h-[6px] rounded-full ${upload.status === 'ready' ? 'bg-[#4CAF50]' : 'bg-[#E65100]'}`} />
-                  <span className="font-bold text-[#0F172A] text-sm truncate">{upload.fileName}</span>
+              {(!uploads || uploads.length === 0) && (
+                <div className="py-8 text-center text-[#64748B] text-sm">
+                  No uploads yet.
                 </div>
-                <p className="text-xs text-[#64748B] mt-0.5">{upload.uploadDate}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-white p-2 rounded-lg border border-[#E2E8F0]">
-                  <p className="text-[10px] uppercase tracking-wider text-[#94A3B8] font-bold">Matched</p>
-                  <p className="text-sm font-bold text-[#2E7D32]">{upload.matched}</p>
-                </div>
-                <div className="bg-white p-2 rounded-lg border border-[#E2E8F0]">
-                  <p className="text-[10px] uppercase tracking-wider text-[#94A3B8] font-bold">Unmatched</p>
-                  <p className="text-sm font-bold text-[#B71C1C]">{upload.unmatched}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-[#E2E8F0]">
-                <Badge
-                  variant={upload.status === 'ready' ? 'success' : 'warning'}
-                  className="text-[10px] uppercase"
-                >
-                  {upload.status === 'ready' ? 'Ready' : 'Processing'}
-                </Badge>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="text-xs h-8 px-4"
-                  onClick={() => navigate(`/bank-statements/${upload.id}`)}
-                >
-                  Review →
-                </Button>
-              </div>
+              )}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </Card>
     </AdminLayout>
   )

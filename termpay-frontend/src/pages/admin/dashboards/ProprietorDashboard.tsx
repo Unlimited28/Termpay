@@ -8,17 +8,10 @@ import {
   UserPlus,
   Upload
 } from 'lucide-react'
-import { Card } from '../../../components/ui'
+import { useQuery } from '@tanstack/react-query'
+import { Card, LoadingSkeleton } from '../../../components/ui'
 import { useAuth } from '../../../context/AuthContext'
-import { useData } from '../../../context/DataContext'
-
-const mockClassCollections = [
-  { className: 'Primary 2', students: 3, collected: 85000, expected: 255000, rate: 33 },
-  { className: 'Primary 3', students: 3, collected: 95000, expected: 285000, rate: 33 },
-  { className: 'Nursery 1', students: 3, collected: 150000, expected: 225000, rate: 67 },
-  { className: 'Nursery 2', students: 3, collected: 150000, expected: 225000, rate: 67 },
-  { className: 'Primary 1', students: 3, collected: 170000, expected: 255000, rate: 67 },
-]
+import { dashboardService } from '../../../services/dashboardService'
 
 const recentActivity = [
   { id: 1, type: 'payment', description: '6 payments confirmed from GTBank statement', time: '2 hours ago', icon: CheckCircle, color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.12)' },
@@ -31,18 +24,33 @@ const recentActivity = [
 
 const ProprietorDashboard = () => {
   const { user } = useAuth()
-  const { students, stats } = useData()
+
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: dashboardService.getStats
+  })
+
+  const { data: classBreakdown, isLoading: breakdownLoading } = useQuery({
+    queryKey: ['class-breakdown'],
+    queryFn: dashboardService.getClassBreakdown
+  })
+
+  const { data: unpaidStudents, isLoading: unpaidLoading } = useQuery({
+    queryKey: ['unpaid-students'],
+    queryFn: dashboardService.getUnpaidStudents
+  })
 
   const getGreeting = () => {
     const hours = new Date().getHours()
-    const name = user?.fullName || 'Dr. Yomi Adeyinka'
+    const name = user?.fullName || 'Proprietor'
     const parts = name.split(' ')
     const lastName = parts[parts.length - 1]
 
-    let title = 'Dr.'
+    let title = 'Mx.'
     if (name.startsWith('Dr.')) title = 'Dr.'
     else if (name.startsWith('Mr.')) title = 'Mr.'
     else if (name.startsWith('Mrs.')) title = 'Mrs.'
+    else if (user?.role === 'proprietor') title = 'Dr.' // Fallback from requirements/mock
 
     let greeting = 'Good morning'
     if (hours >= 12 && hours < 17) greeting = 'Good afternoon'
@@ -51,22 +59,27 @@ const ProprietorDashboard = () => {
     return `${greeting}, ${title} ${lastName} 👋`
   }
 
-  const topDefaulters = students
-    .filter(s => s.status !== 'paid')
-    .sort((a, b) => b.balance - a.balance)
-    .slice(0, 5)
+  if (statsLoading || breakdownLoading || unpaidLoading) {
+    return <div className="p-8 space-y-8">
+      <LoadingSkeleton variant="stats" />
+      <LoadingSkeleton variant="table" />
+    </div>
+  }
+
+  if (!stats) return null
 
   // Circular progress math
+  const collectionRate = stats.collectionRate || 0
   const radius = 54
   const circumference = 2 * Math.PI * radius
-  const offset = circumference - (51 / 100) * circumference
+  const offset = circumference - (collectionRate / 100) * circumference
 
   return (
     <div className="space-y-8 ambient-green animate-in fade-in slide-up duration-400">
       {/* Header */}
       <div>
         <h1 className="text-[28px] font-bold text-ink-primary leading-tight tracking-tighter">{getGreeting()}</h1>
-        <p className="text-[16px] text-[#64748B] mt-1">Here is how Yomfield is performing this term.</p>
+        <p className="text-[16px] text-[#64748B] mt-1">Here is how {user?.schoolName} is performing this term.</p>
       </div>
 
       {/* Hero Section */}
@@ -76,8 +89,8 @@ const ProprietorDashboard = () => {
       >
         <div className="z-10 text-center md:text-left mb-8 md:mb-0">
           <p className="text-[11px] uppercase tracking-widest text-[#475569] font-bold mb-2">Total Expected Revenue</p>
-          <div className="text-[52px] font-900 leading-none mb-3 font-black">₦1,275,000</div>
-          <p className="text-[13px] text-[#475569] font-medium">Second Term 2025/2026</p>
+          <div className="text-[52px] font-900 leading-none mb-3 font-black">₦{stats.totalExpected?.toLocaleString()}</div>
+          <p className="text-[13px] text-[#475569] font-medium">{stats.termName} {stats.session}</p>
         </div>
 
         <div className="relative z-10 flex flex-col items-center">
@@ -107,7 +120,7 @@ const ProprietorDashboard = () => {
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-[28px] font-bold text-ink-primary">51%</span>
+              <span className="text-[28px] font-bold text-ink-primary">{collectionRate}%</span>
             </div>
           </div>
           <p className="text-[11px] uppercase tracking-wider text-[#475569] font-bold mt-3">Collection Rate</p>
@@ -127,7 +140,7 @@ const ProprietorDashboard = () => {
             </div>
 
             <div className="space-y-8">
-              {mockClassCollections.map((item, idx) => {
+              {classBreakdown?.map((item: any, idx: number) => {
                 const isGood = item.rate >= 60;
                 const isMedium = item.rate >= 40 && item.rate < 60;
                 const colorClass = isGood ? 'text-emerald' : isMedium ? 'text-warning' : 'text-danger';
@@ -171,7 +184,7 @@ const ProprietorDashboard = () => {
             </div>
 
             <div className="divide-y divide-white/[0.04]">
-              {topDefaulters.map((student) => (
+              {unpaidStudents?.slice(0, 5).map((student: any) => (
                 <div key={student.id} className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.02] transition-colors">
                   <div>
                     <p className="font-semibold text-ink-primary">{student.fullName}</p>
@@ -218,7 +231,7 @@ const ProprietorDashboard = () => {
 
             <div className="p-4 bg-warning/8 rounded-2xl border border-warning/12">
               <div className="text-warning-light font-bold text-[15px] mb-1">16 days remaining</div>
-              <p className="text-[12px] text-[#475569] leading-relaxed">₦625,000 outstanding with 16 days to go in this term.</p>
+              <p className="text-[12px] text-[#475569] leading-relaxed">₦{stats.totalOutstanding?.toLocaleString()} outstanding with 16 days to go in this term.</p>
             </div>
           </Card>
 

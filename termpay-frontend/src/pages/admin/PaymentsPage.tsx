@@ -1,12 +1,12 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import {
   Search,
   Download,
   Plus,
   CheckCircle,
-  XCircle,
   CreditCard,
 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AdminLayout } from '../../layouts'
 import {
   PageHeader,
@@ -16,18 +16,24 @@ import {
   Select,
   Badge,
   Modal,
-  EmptyState
+  EmptyState,
+  LoadingSkeleton
 } from '../../components/ui'
 import { useToast } from '../../context/ToastContext'
-import { mockRecentPayments, mockStudents, mockClasses, mockTerm } from '../../mock/mockData'
-import { type Student } from '../../types'
+import { paymentsService, type PaymentFilters } from '../../services/paymentsService'
+import { studentsService } from '../../services/studentsService'
+import { dashboardService } from '../../services/dashboardService'
+import { getErrorMessage } from '../../services/apiClient'
 
 const PaymentsPage = () => {
   const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
   const [classFilter, setClassFilter] = useState('all')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 20
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [newPayment, setNewPayment] = useState({
@@ -38,26 +44,57 @@ const PaymentsPage = () => {
     note: ''
   })
 
-  // Filter logic
-  const filteredPayments = useMemo(() => {
-    return mockRecentPayments.filter(payment => {
-      const matchesSearch = payment.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           payment.receiptNumber.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesClass = classFilter === 'all' || payment.className.toLowerCase().includes(classFilter.toLowerCase())
+  const filters: PaymentFilters = {
+    search: searchTerm,
+    classId: classFilter === 'all' ? undefined : classFilter,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    page: currentPage,
+    limit: itemsPerPage
+  }
 
-      let matchesDate = true
-      if (dateFrom && payment.paymentDate < dateFrom) matchesDate = false
-      if (dateTo && payment.paymentDate > dateTo) matchesDate = false
+  const { data: paymentsData, isLoading } = useQuery({
+    queryKey: ['payments', filters],
+    queryFn: () => paymentsService.listPayments(filters)
+  })
 
-      return matchesSearch && matchesClass && matchesDate
-    })
-  }, [searchTerm, classFilter, dateFrom, dateTo])
+  const { data: classes } = useQuery({
+    queryKey: ['classes'],
+    queryFn: studentsService.getClasses
+  })
 
-  const totalAmount = filteredPayments.reduce((sum, p) => sum + p.amount, 0)
-  const whatsappCount = filteredPayments.filter(p => p.whatsappSent).length
+  const { data: stats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: dashboardService.getStats
+  })
 
-  const handleDownload = (receiptNo: string) => {
-    toast.info(`Downloading receipt ${receiptNo}...`)
+  const manualPaymentMutation = useMutation({
+    mutationFn: (data: any) => paymentsService.recordManualPayment(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      toast.success('Manual payment recorded successfully')
+      setIsModalOpen(false)
+      setNewPayment({
+        studentId: '',
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        method: 'Bank Transfer',
+        note: ''
+      })
+    },
+    onError: (err) => toast.error(getErrorMessage(err))
+  })
+
+  const handleDownloadReceipt = async (paymentId: string) => {
+    try {
+      const data = await paymentsService.downloadReceipt(paymentId)
+      if (data.downloadUrl) {
+        window.open(data.downloadUrl, '_blank')
+      }
+    } catch (err) {
+      toast.error('Failed to download receipt')
+    }
   }
 
   const handleRecordPayment = () => {
@@ -66,27 +103,29 @@ const PaymentsPage = () => {
       return
     }
 
-    toast.success("Manual payment recorded successfully")
-    setIsModalOpen(false)
-    setNewPayment({
-      studentId: '',
-      amount: '',
-      date: new Date().toISOString().split('T')[0],
-      method: 'Bank Transfer',
-      note: ''
+    manualPaymentMutation.mutate({
+      studentId: newPayment.studentId,
+      amount: parseFloat(newPayment.amount),
+      paymentDate: newPayment.date,
+      paymentMethod: newPayment.method,
+      note: newPayment.note
     })
   }
 
   const classOptions = [
     { value: 'all', label: 'All Classes' },
-    ...mockClasses.map(c => ({ value: c.name, label: c.name }))
+    ...(classes?.map((c: any) => ({ value: c.id, label: c.name })) || [])
   ]
+
+  const payments = paymentsData?.data || []
+  const totalAmount = stats?.totalCollected || 0
+  const whatsappCount = paymentsData?.stats?.whatsappCount || 0
 
   return (
     <AdminLayout>
       <PageHeader
         title="Payments"
-        subtitle={`${mockTerm.name} ${mockTerm.session}`}
+        subtitle={stats ? `${stats.termName} ${stats.session}` : ''}
         actions={
           <Button onClick={() => setIsModalOpen(true)}>
             <Plus size={18} className="mr-2" />
@@ -103,7 +142,7 @@ const PaymentsPage = () => {
           </div>
           <div>
             <p className="text-xs text-text-secondary font-medium uppercase tracking-wider">Total Payments</p>
-            <p className="text-lg font-bold text-text-primary">{filteredPayments.length}</p>
+            <p className="text-lg font-bold text-text-primary">{paymentsData?.pagination?.total || 0}</p>
           </div>
         </div>
         <div className="bg-white p-4 rounded-xl border border-surface-border shadow-sm flex items-center gap-4">
@@ -121,7 +160,7 @@ const PaymentsPage = () => {
           </div>
           <div>
             <p className="text-xs text-text-secondary font-medium uppercase tracking-wider">WhatsApp Sent</p>
-            <p className="text-lg font-bold text-text-primary">{whatsappCount} of {filteredPayments.length}</p>
+            <p className="text-lg font-bold text-text-primary">{whatsappCount} overall</p>
           </div>
         </div>
       </div>
@@ -135,7 +174,10 @@ const PaymentsPage = () => {
               placeholder="Student or Receipt No..."
               icon={<Search size={18} />}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setCurrentPage(1)
+              }}
             />
           </div>
           <div className="w-full lg:w-40">
@@ -143,7 +185,10 @@ const PaymentsPage = () => {
               label="From"
               type="date"
               value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
+              onChange={(e) => {
+                setDateFrom(e.target.value)
+                setCurrentPage(1)
+              }}
             />
           </div>
           <div className="w-full lg:w-40">
@@ -151,7 +196,10 @@ const PaymentsPage = () => {
               label="To"
               type="date"
               value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
+              onChange={(e) => {
+                setDateTo(e.target.value)
+                setCurrentPage(1)
+              }}
             />
           </div>
           <div className="w-full lg:w-48">
@@ -159,7 +207,10 @@ const PaymentsPage = () => {
               label="Class"
               options={classOptions}
               value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
+              onChange={(e) => {
+                setClassFilter(e.target.value)
+                setCurrentPage(1)
+              }}
             />
           </div>
         </div>
@@ -167,59 +218,63 @@ const PaymentsPage = () => {
 
       {/* Payments Table */}
       <Card className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50 text-xs text-text-secondary font-semibold uppercase tracking-wider">
-                <th className="px-6 py-4">Receipt No</th>
-                <th className="px-6 py-4">Student</th>
-                <th className="px-6 py-4">Class</th>
-                <th className="px-6 py-4 text-right">Amount</th>
-                <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4 text-center">WhatsApp</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-border">
-              {filteredPayments.length > 0 ? (
-                filteredPayments.map((payment) => (
-                  <tr key={payment.id} className="text-sm hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-mono text-xs text-text-primary">{payment.receiptNumber}</td>
-                    <td className="px-6 py-4 font-medium text-text-primary">{payment.studentName}</td>
-                    <td className="px-6 py-4 text-text-secondary">{payment.className}</td>
-                    <td className="px-6 py-4 text-right font-bold text-text-primary">₦{payment.amount.toLocaleString()}</td>
-                    <td className="px-6 py-4 text-text-secondary">{payment.paymentDate}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-center">
-                        {payment.whatsappSent ? (
-                          <CheckCircle size={18} className="text-brand-green" />
-                        ) : (
-                          <XCircle size={18} className="text-text-disabled" />
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => handleDownload(payment.receiptNumber)}>
-                        <Download size={16} className="mr-2" />
-                        Download
-                      </Button>
+        {isLoading ? (
+          <div className="p-6"><LoadingSkeleton variant="table" rows={10} /></div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50 text-xs text-text-secondary font-semibold uppercase tracking-wider">
+                  <th className="px-6 py-4">Receipt No</th>
+                  <th className="px-6 py-4">Student</th>
+                  <th className="px-6 py-4">Class</th>
+                  <th className="px-6 py-4 text-right">Amount</th>
+                  <th className="px-6 py-4">Date</th>
+                  <th className="px-6 py-4 text-center">Status</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-border">
+                {payments.length > 0 ? (
+                  payments.map((payment: any) => (
+                    <tr key={payment.id} className="text-sm hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 font-mono text-xs text-text-primary">{payment.receiptNumber}</td>
+                      <td className="px-6 py-4 font-medium text-text-primary">{payment.studentName}</td>
+                      <td className="px-6 py-4 text-text-secondary">{payment.className}</td>
+                      <td className="px-6 py-4 text-right font-bold text-text-primary">₦{payment.amountPaid.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-text-secondary">{new Date(payment.paymentDate).toLocaleDateString()}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-center">
+                          {payment.status === 'confirmed' ? (
+                            <CheckCircle size={18} className="text-brand-green" />
+                          ) : (
+                            <Badge variant="warning">{payment.status}</Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Button variant="ghost" size="sm" onClick={() => handleDownloadReceipt(payment.id)}>
+                          <Download size={16} className="mr-2" />
+                          Download
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="py-12">
+                      <EmptyState
+                        icon={CreditCard}
+                        title="No payments found"
+                        description="Try adjusting your search or date range filters."
+                      />
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="py-12">
-                    <EmptyState
-                      icon={CreditCard}
-                      title="No payments found"
-                      description="Try adjusting your search or date range filters."
-                    />
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
 
       {/* Record Manual Payment Modal */}
@@ -230,7 +285,7 @@ const PaymentsPage = () => {
         footer={
           <>
             <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleRecordPayment}>Save Payment</Button>
+            <Button onClick={handleRecordPayment} isLoading={manualPaymentMutation.isPending}>Save Payment</Button>
           </>
         }
       >
@@ -279,17 +334,17 @@ const PaymentsPage = () => {
   )
 }
 
-// Re-using the SearchSelect from BankStatementReviewPage logic here
-const StudentSearchSelect = ({ onSelect }: { onSelect: (s: Student) => void }) => {
+const StudentSearchSelect = ({ onSelect }: { onSelect: (s: any) => void }) => {
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
 
-  const results = useMemo(() => {
-    if (query.length < 2) return []
-    return mockStudents.filter(s =>
-      s.fullName.toLowerCase().includes(query.toLowerCase())
-    ).slice(0, 5)
-  }, [query])
+  const { data: studentsData } = useQuery({
+    queryKey: ['students-search', query],
+    queryFn: () => studentsService.listStudents({ search: query, limit: 10 }),
+    enabled: query.length >= 2
+  })
+
+  const results = studentsData?.data || []
 
   return (
     <div className="relative">
@@ -312,7 +367,7 @@ const StudentSearchSelect = ({ onSelect }: { onSelect: (s: Student) => void }) =
       {isOpen && query.length >= 2 && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-surface-border rounded-lg shadow-xl z-50 overflow-hidden">
           {results.length > 0 ? (
-            results.map(s => (
+            results.map((s: any) => (
               <button
                 key={s.id}
                 className="w-full px-4 py-3 text-left text-sm hover:bg-slate-50 flex items-center justify-between"

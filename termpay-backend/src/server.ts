@@ -22,7 +22,11 @@ app.use(helmet())
 
 // CORS configuration
 app.use(cors({
-  origin: env.frontendUrl,
+  origin: [
+    env.frontendUrl,
+    'http://localhost:5173',
+    'https://termpay.vercel.app'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
